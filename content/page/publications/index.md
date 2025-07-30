@@ -99,11 +99,13 @@ comments: false
 
 1. O. Møyner, K.A. Lie, *The multiscale finite-volume method on stratigraphic grids*, SPE Journal 19.5 (2014)
 
-## Books
+## Books and book chapters
+
+### Editor
 
 1. KA. Lie, O. Møyner (Editors). *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)*, Cambridge University Press (2021)
 
-## Peer-reviewed book chapters
+### Peer-reviewed book chapters
 
 In *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)* (2021):
 
@@ -145,7 +147,7 @@ In *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)* (202
 
 1. HM. Nilsen, A. Moncorgé, K. Bao, O. Møyner, KA. Lie, A. Brodtkorb. *Comparison Between Algebraic Multigrid and Multilevel Multiscale Methods for Reservoir Simulation*.  In ECMOR XVII 2020.
 
-1. M. Borregales, O. Møyner, S. Krogstad, KA. Lie. *Data-Driven Models Based on Flow Diagnostics *. In ECMOR XVII 2020.
+1. M. Borregales, O. Møyner, S. Krogstad, KA. Lie. *Data-Driven Models Based on Flow Diagnostics*. In ECMOR XVII 2020.
 
 1. Ø. Klemetsdal, O. Møyner, X. Raynaud, KA. Lie. *A Comparison of Consistent Discretizations for Elliptic Problems on Polyhedral Grids*. In: International Conference on Finite Volumes for Complex Applications, 585-594. 2020.
 
@@ -189,13 +191,13 @@ In *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)* (202
 
 1. O. Møyner and KA. Lie. *The multiscale finite volume method on unstructured grids*. In: SPE Reservoir Simulation Symposium, The Woodlands, TX, USA, 18–20 February 2013. SPE 163649-MS. 2013. doi: 10.2118/163649-MS.
 
-### Theses
+## Theses
 
 1. O. Møyner. [*Next Generation Multiscale Methods for Reservoir Simulation*](https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2431831). Ph.D. thesis, Norwegian University of Science and Technology (NTNU). 2016.
 
 2. O. Møyner. [*Multiscale Finite Volume Methods: Extension to Unstructured Grids with Applications in Reservoir Simulation*](https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/259015). M.Sc. thesis, NTNU. 2012.
 
-### Other
+## Other
 
 1. O. Møyner. *Multiscale Simulation of Flow and Transport in Porous Media*. SIAM News, 2019.
 
