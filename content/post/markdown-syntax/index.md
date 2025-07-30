@@ -53,6 +53,8 @@ The blockquote element represents content that is quoted from another source, op
 
 Tables aren't part of the core Markdown spec, but Hugo supports supports them out-of-the-box.
 
+Hva hvis jeg legger til tekst her?
+
    Name | Age
 --------|------
     Bob | 27
