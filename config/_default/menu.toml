@@ -10,15 +10,42 @@
 [[social]]
 identifier = "github"
 name = "GitHub"
-url = "https://github.com/CaiJimmy/hugo-theme-stack"
+url = "https://github.com/moyner"
 
 [social.params]
 icon = "brand-github"
 
 [[social]]
 identifier = "twitter"
-name = "Twitter"
-url = "https://twitter.com"
+name = "LinkedIn"
+url = "https://www.linkedin.com/in/moyner/"
 
 [social.params]
-icon = "brand-twitter"
+icon = "brand-linkedin"
+
+[[social]]
+identifier = "orcid"
+name = "ORCID"
+url = "https://orcid.org/0000-0001-9993-3879"
+
+[social.params]
+icon = "link"
+
+[[social]]
+identifier = "google-scholar"
+name = "Google Scholar"
+url = "https://scholar.google.com/citations?user=ivMvG4wAAAAJ"
+
+[social.params]
+icon = "brand-google"
+
+[[social]]
+identifier = "sintef-profile"
+name = "@SINTEF"
+url = "https://www.sintef.no/en/all-employees/employee/olav.moyner/"
+
+[social.params]
+icon = "briefcase-2"
+
+
+

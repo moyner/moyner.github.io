@@ -4,7 +4,7 @@ date: 2025-03-06
 menu: 
     main:
         name: About
-        weight: 1
+        weight: 2
         params: 
             icon: user
 
@@ -15,3 +15,4 @@ Hello
 
 1. Text
 2. More text.
+3. Even more text
