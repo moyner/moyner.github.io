@@ -11,7 +11,20 @@ menu:
 comments: false
 ---
 
+## Preprints
+
+1. J. M. Nordbotten, M. A. Fernø, B. Flemisch, A. R. Kovscek, K.-A. Lie, J. W. Both, O. Møyner, T. H. Sandve, E. Ahusborde, S. Bauer, Z. Chen, H. Class, C. Di, D. Ding, D. Element, A. Firoozabadi, E. Flauraud, J. Franc, F. Gasanzade, Y. Ghomian, M. A. Giddins, C. Green, B. R. B. Fernandes, G. Hadjisotiriou, G. Hammond, H. Huang, D. Kachuma, M. Kern, T. Koch, P. Krishnamurthy, K. O. Lye, D. Landa-Marbán, M. Nole, P. Orsini, N. Ruby, P. Salinas, M. Sayyafzadeh, J. Solovský, J. Torben, A. Turner, D. V. Voskov, K. Wendel, A. A. Youssef [*Benchmarking CO2 Storage Simulations: Results from the 11th Society of Petroleum Engineers Comparative Solution Project*](https://arxiv.org/pdf/2507.15861)
+
+1. E. Ahmed, B. Amaziane, S. Chabab, S. D. Santacreu, G. Galliéro, O. Møyner, X. Raynaud
+[Modeling and Simulation of Coupled Biochemical and Two-Phase Compositional Flow in Underground Hydrogen Storage](https://arxiv.org/pdf/2506.02582)
+
 ## Journal publications
+
+1. O. Møyner [*JutulDarcy. jl-a fully differentiable high-performance reservoir simulator based on automatic differentiation*](https://link.springer.com/content/pdf/10.1007/s10596-025-10366-6.pdf), Computational Geosciences (2025)
+
+1. L. Bertoni, O. Møyner, J. Wiegner, M. Gazzani, [*Optimizing carbon capture and storage infrastructure including physics-based reservoir modeling*](https://doi.org/10.1016/j.compchemeng.2025.109293), Computers & Chemical Engineering (2025)
+
+1. K.-A. Lie, O. Møyner, Ø. Klemetsdal, [*Accelerating Nonlinear Convergence in Reservoir Simulation by Adaptive Relaxation and Nonlinear Domain-Decomposition Preconditioning*](https://doi.org/10.2118/212199-PA), SPE Journal (2025)
 
 1. R.H. Deucher, J. Franc, O. Møyner, H.A. Tchelepi, *Compositional reservoir simulation with a high-resolution compact stencil adaptive implicit method*, Journal of Computational Physics (2025)
 
@@ -99,13 +112,11 @@ comments: false
 
 1. O. Møyner, K.A. Lie, *The multiscale finite-volume method on stratigraphic grids*, SPE Journal 19.5 (2014)
 
-## Books and book chapters
+## Books
 
-### Editor
+1. K.-A. Lie, O. Møyner (Editors). *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)*, Cambridge University Press (2021)
 
-1. KA. Lie, O. Møyner (Editors). *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)*, Cambridge University Press (2021)
-
-### Peer-reviewed book chapters
+## Peer-reviewed book chapters
 
 In *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)* (2021):
 
@@ -115,11 +126,18 @@ In *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)* (202
 
 1. O. Møyner. "Compositional Simulation with the AD-OO Framework"
 
-1. KA. Lie and O. Møyner "Multiscale Pressure Solvers for Stratigraphic and Polytopal Grids"
+1. K.-A. Lie and O. Møyner "Multiscale Pressure Solvers for Stratigraphic and Polytopal Grids"
 
 1. M. Collignon, Ø.S. Klemetsdal, O. Møyner "Simulation of Geothermal Systems using MRST"
 
 ## Conference proceedings
+
+1. S. Krogstad, M. A. Jakymec, A. Kianinejad, D. Pertuso, S. Matringe, A. Brostrom, J. Torben, O. Møyner, K.-A. Lie
+ [Reduced Physics-Based Simulation for Unconventional Production Forecasting-A 1D Approach](https://doi.org/10.15530/urtec-2025-4253913). SPE/AAPG/SEG Unconventional Resources Technology Conference June 2025.
+
+1. O. Møyner and K.-A. Lie. A data-driven approach to select optimal time steps for complex reservoir models. SPE Reservoir Simulation Conference, Galveston, Texas, USA, 25-27 Mar 2025.
+
+1. K. Holme, K.-A. Lie, O. Møyner, A. Johansson. Grid-orientation effects in the 11th SPE Comparative Solution Project using unstructured grids and consistent discretizations SPE Reservoir Simulation Conference, Galveston, Texas, USA, 25-27 Mar 2025.
 
 1. O. Møyner, *JutulDarcy.jl - a fully differentiable high-performance reservoir simulator based on automatic differentiation*, ECMOR 2024
 
@@ -127,15 +145,15 @@ In *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)* (202
 
 1. A.F. Rasmussen, O. Møyner, B. Skaflestad, K.A. Lie, J. Torben, A. Moncorgé, V. Kippe, *Distributed Field-Scale Parallel Nonlinear Domain Decomposition Solver*, ECMOR 2024
 
-1. BN. Aslam, B. Yan, KA. Lie, S. Krogstad, O. Møyner, X. He, *DiagNet-A Hybrid Physics-Data Driven Model for Fractured Reservoir Simulation*, SPE GOTECH, 2024
+1. BN. Aslam, B. Yan, K.-A. Lie, S. Krogstad, O. Møyner, X. He, *DiagNet-A Hybrid Physics-Data Driven Model for Fractured Reservoir Simulation*, SPE GOTECH, 2024
 
 1. K-A. Lie, O. Møyner, Ø.A. Klemetsdal, *An Adaptive Newton–ASPEN Solver for Complex Reservoir Models*, SPE Reservoir Simulation Conference 2023
 
 1. O Møyner, A Rasmussen, Ø Klemetsdal, H Nilsen, A Moncorgé, K Lie, *Nonlinear Domain Decomposition Preconditioning for Robust and Efficient Field-Scale Simulation of Subsurface Flow*, ECMOR 2022
 
-1. MAB. Reveron, HH. Holm, O. Møyner, S. Krogstad, KA. Lie *Numerical Comparison Between ES-MDA and Gradient-Based Optimization for History Matching of Reduced Reservoir Models*, SPE Reservoir Simulation Conference 2021
+1. MAB. Reveron, HH. Holm, O. Møyner, S. Krogstad, K.-A. Lie *Numerical Comparison Between ES-MDA and Gradient-Based Optimization for History Matching of Reduced Reservoir Models*, SPE Reservoir Simulation Conference 2021
 
-1. Ø. Klemetsdal, O. Møyner, A. Moncorgé, HM. Nilsen, KA. Lie, *High-resolution compositional reservoir simulation with dynamic coarsening and local timestepping for unstructured grids*, SPE Reservoir Simulation Conference 2021
+1. Ø. Klemetsdal, O. Møyner, A. Moncorgé, HM. Nilsen, K.-A. Lie, *High-resolution compositional reservoir simulation with dynamic coarsening and local timestepping for unstructured grids*, SPE Reservoir Simulation Conference 2021
 
 1. J. Franc, O. Møyner, HA. Tchelepi *Coupling-Strength Criteria for Sequential Implicit Formulations*, SPE Reservoir Simulation Conference 2021
 
@@ -143,53 +161,53 @@ In *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)* (202
 
 1. O. Møyner. *Dynamic Saturation Reconstruction for Multiphase Flow by Time-Of-Flight Fill Functions*. In ECMOR XVII 2020.
 
-1. Ø. Klemetsdal, A. Moncorgé, O. Møyner, KA. Lie. *Additive Schwarz Preconditioned Exact Newton Method as a Nonlinear Preconditioner for Multiphase Porous Media Flow*.  In ECMOR XVII 2020.
+1. Ø. Klemetsdal, A. Moncorgé, O. Møyner, K.-A. Lie. *Additive Schwarz Preconditioned Exact Newton Method as a Nonlinear Preconditioner for Multiphase Porous Media Flow*.  In ECMOR XVII 2020.
 
-1. HM. Nilsen, A. Moncorgé, K. Bao, O. Møyner, KA. Lie, A. Brodtkorb. *Comparison Between Algebraic Multigrid and Multilevel Multiscale Methods for Reservoir Simulation*.  In ECMOR XVII 2020.
+1. HM. Nilsen, A. Moncorgé, K. Bao, O. Møyner, K.-A. Lie, A. Brodtkorb. *Comparison Between Algebraic Multigrid and Multilevel Multiscale Methods for Reservoir Simulation*.  In ECMOR XVII 2020.
 
-1. M. Borregales, O. Møyner, S. Krogstad, KA. Lie. *Data-Driven Models Based on Flow Diagnostics*. In ECMOR XVII 2020.
+1. M. Borregales, O. Møyner, S. Krogstad, K.-A. Lie. *Data-Driven Models Based on Flow Diagnostics*. In ECMOR XVII 2020.
 
-1. Ø. Klemetsdal, O. Møyner, X. Raynaud, KA. Lie. *A Comparison of Consistent Discretizations for Elliptic Problems on Polyhedral Grids*. In: International Conference on Finite Volumes for Complex Applications, 585-594. 2020.
+1. Ø. Klemetsdal, O. Møyner, X. Raynaud, K.-A. Lie. *A Comparison of Consistent Discretizations for Elliptic Problems on Polyhedral Grids*. In: International Conference on Finite Volumes for Complex Applications, 585-594. 2020.
 
-1. Ø. Klemetsdal, O. Møyner and KA. Lie. *Implicit High-Resolution Compositional Simulation With Optimal Ordering of Unknowns and Adaptive Spatial Refinement* In: Reservoir Simulation Conference, Galveston, Texas, USA, 10-11 April 2019
+1. Ø. Klemetsdal, O. Møyner and K.-A. Lie. *Implicit High-Resolution Compositional Simulation With Optimal Ordering of Unknowns and Adaptive Spatial Refinement* In: Reservoir Simulation Conference, Galveston, Texas, USA, 10-11 April 2019
 
-1. R. Toft, KA. Lie, and O. Møyner. *Full Approximation Scheme for Reservoir Simulation.* In: Norsk Informatikkonferanse (NIK), 18-20 September, 2018.
+1. R. Toft, K.-A. Lie, and O. Møyner. *Full Approximation Scheme for Reservoir Simulation.* In: Norsk Informatikkonferanse (NIK), 18-20 September, 2018.
 
 1. O. Møyner and A. Moncorgé. [*Nonlinear Domain Decomposition Scheme for Sequential Fully Implicit Formulation of Compositional Multiphase Flow*](https://drive.google.com/open?id=1_pf73QtG0Rem8jWSTAvId8NQ6SKgAdX1). In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.
 
-1. Ø. Klemetsdal, A. F. Rasmussen, O. Møyner and KA. Lie. [*Nonlinear Gauss-Seidel Solvers With Higher Order For Black-Oil Models*](). In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.
+1. Ø. Klemetsdal, A. F. Rasmussen, O. Møyner and K.-A. Lie. [*Nonlinear Gauss-Seidel Solvers With Higher Order For Black-Oil Models*](http://dx.doi.org/10.1007/s10596-019-09844-5). In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.
 
-1. Ø. Klemetsdal, O. Møyner and KA. Lie. [*Use Of Dynamically Adapted Basis Functions To Accelerate Multiscale Simulation Of Complex Geomodels*](https://drive.google.com/open?id=1BkiqjAVaQhboFfpRjXXKVGgGQ4O4gz-x). In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.
+1. Ø. Klemetsdal, O. Møyner and K.-A. Lie. [*Use Of Dynamically Adapted Basis Functions To Accelerate Multiscale Simulation Of Complex Geomodels*](https://drive.google.com/open?id=1BkiqjAVaQhboFfpRjXXKVGgGQ4O4gz-x). In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.
 
-1. KA. Lie, O. Møyner and T. S. Mykkeltvedt. [*Fully Implicit WENO Schemes On Stratigraphic And Fully Unstructured Grids*](https://drive.google.com/open?id=1de3vRVpiy330y8F1xkKFoqK4z7V2l-Zu). In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.
+1. K.-A. Lie, O. Møyner and T. S. Mykkeltvedt. [*Fully Implicit WENO Schemes On Stratigraphic And Fully Unstructured Grids*](https://drive.google.com/open?id=1de3vRVpiy330y8F1xkKFoqK4z7V2l-Zu). In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.
 
 1. O. Møyner, O. Andersen and H. M. Nilsen. [*Multi-Model Hybrid Compositional Simulator with Application to Segregated flow*](https://drive.google.com/open?id=1QpRSgQKQ-99RFIIlD1Hto1Q_liDaqJKE). In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.
 
-1. Ø. Klemetsdal, O. Møyner, X. Raynaud, and KA. Lie. [*Non-linear Newton Solver for a Polymer Two-phase System Using Interface-localized Trust Regions*](https://drive.google.com/open?id=0B1GmpCOimV8nRUx5RjJUN0JHdDQ). In: 19th European Conference on Improved Oil Recovery, Stavanger, Norway, 24-27 April 2017. 2017.
+1. Ø. Klemetsdal, O. Møyner, X. Raynaud, and K.-A. Lie. [*Non-linear Newton Solver for a Polymer Two-phase System Using Interface-localized Trust Regions*](https://drive.google.com/open?id=0B1GmpCOimV8nRUx5RjJUN0JHdDQ). In: 19th European Conference on Improved Oil Recovery, Stavanger, Norway, 24-27 April 2017. 2017.
 
-1. KA. Lie, O. Møyner, and J. R. Natvig. [*A Feature-Enriched Multiscale Method for Simulating Complex Geomodels*](https://drive.google.com/open?id=0B1GmpCOimV8nelNWeFRRSlVWb00). In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.
+1. K.-A. Lie, O. Møyner, and J. R. Natvig. [*A Feature-Enriched Multiscale Method for Simulating Complex Geomodels*](https://drive.google.com/open?id=0B1GmpCOimV8nelNWeFRRSlVWb00). In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.
 
-1. Ø. Klemetsdal, R. L. Berge, KA. Lie, H. M. Nilsen, and O. Møyner. [*Unstructured Gridding and Consistent Discretizations for Reservoirs With Faults and Complex Wells*](https://drive.google.com/open?id=0B1GmpCOimV8nRTM2cTVQc2NyMjQ). In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.
+1. Ø. Klemetsdal, R. L. Berge, K.-A. Lie, H. M. Nilsen, and O. Møyner. [*Unstructured Gridding and Consistent Discretizations for Reservoirs With Faults and Complex Wells*](https://drive.google.com/open?id=0B1GmpCOimV8nRTM2cTVQc2NyMjQ). In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.
 
 1. O. Møyner and H.A. Tchelepi. *A Multiscale Restriction-Smoothed Basis Method for Compositional Models. In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.
 
 1. O. Møyner. [*Nonlinear Solver for Three-Phase Transport Problems Based on Approximate Trust Regions*](https://drive.google.com/open?id=0B1GmpCOimV8ncEFyRk03eDFlVzQ). In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.
 
-1. KA. Lie, O. Møyner, J. R. Natvig, A. Kozlova, K. Bratvedt, and S. Watanabe. [*Successful Application of Multiscale Methods in a Real Reservoir Simulator Environment*](https://drive.google.com/open?id=0B1GmpCOimV8nX0xXMG5VRzJtVHM). In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.
+1. K.-A. Lie, O. Møyner, J. R. Natvig, A. Kozlova, K. Bratvedt, and S. Watanabe. [*Successful Application of Multiscale Methods in a Real Reservoir Simulator Environment*](https://drive.google.com/open?id=0B1GmpCOimV8nX0xXMG5VRzJtVHM). In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.
 
-1. K. Bao, KA. Lie, O. Møyner, and M. Liu. [*Fully Implicit Simulation of Polymer Flooding with MRST*](https://drive.google.com/open?id=0B1GmpCOimV8nazJHZnhuZEE2bm8). In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.
+1. K. Bao, K.-A. Lie, O. Møyner, and M. Liu. [*Fully Implicit Simulation of Polymer Flooding with MRST*](https://drive.google.com/open?id=0B1GmpCOimV8nazJHZnhuZEE2bm8). In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.
 
-1. O. Møyner and KA. Lie. [*A Multiscale Method Based on Restriction-Smoothed Basis Functions Suitable for General Grids in High Contrast Media*](https://drive.google.com/open?id=0B1GmpCOimV8nbEUzbERoZ2NHb1E). In: SPE Reservoir Simulation Symposium held in Houston, Texas, USA, 23–25 February 2015.
+1. O. Møyner and K.-A. Lie. [*A Multiscale Method Based on Restriction-Smoothed Basis Functions Suitable for General Grids in High Contrast Media*](https://drive.google.com/open?id=0B1GmpCOimV8nbEUzbERoZ2NHb1E). In: SPE Reservoir Simulation Symposium held in Houston, Texas, USA, 23–25 February 2015.
 
-1. KA. Lie, S. Krogstad, and O. Møyner. [*Application of flow diagnostics and multiscale methods for reservoir management*](https://drive.google.com/open?id=0B1GmpCOimV8nbEUzbERoZ2NHb1E). In: Reservoir Simulation Symposium, Houston, Texas, USA, 23-25 February 2015
+1. K.-A. Lie, S. Krogstad, and O. Møyner. [*Application of flow diagnostics and multiscale methods for reservoir management*](https://drive.google.com/open?id=0B1GmpCOimV8nbEUzbERoZ2NHb1E). In: Reservoir Simulation Symposium, Houston, Texas, USA, 23-25 February 2015
 
-1. S. Krogstad, KA. Lie, O. Møyner, H.M. Nilsen, X. Raynaud, and B. Skaflestad. [*MRST-AD – an Open-Source Framework for Rapid Prototyping and Evaluation of Reservoir Simulation Problems*](https://drive.google.com/open?id=0B1GmpCOimV8nVFV3ZnFFQjA4UzA). In: SPE Reservoir Simulation Symposium, 23–25 February, Houston, Texas. 2015.
+1. S. Krogstad, K.-A. Lie, O. Møyner, H.M. Nilsen, X. Raynaud, and B. Skaflestad. [*MRST-AD – an Open-Source Framework for Rapid Prototyping and Evaluation of Reservoir Simulation Problems*](https://drive.google.com/open?id=0B1GmpCOimV8nVFV3ZnFFQjA4UzA). In: SPE Reservoir Simulation Symposium, 23–25 February, Houston, Texas. 2015.
 
-1. KA. Lie, H.M. Nilsen, O. Andersen, and O. Møyner. [*A simulation workflow for large-scale CO2 storage in the Norwegian North Sea*](https://drive.google.com/open?id=0B1GmpCOimV8nX003VmxSMDlPS2c). In: ECMOR XIV – 14th European Conference on the Mathematics of Oil Recovery, Catania, Sicily, Italy, 8-11 September 2014. EAGE. 2014. doi: 10.3997/2214-4609.20141877.
+1. K.-A. Lie, H.M. Nilsen, O. Andersen, and O. Møyner. [*A simulation workflow for large-scale CO2 storage in the Norwegian North Sea*](https://drive.google.com/open?id=0B1GmpCOimV8nX003VmxSMDlPS2c). In: ECMOR XIV – 14th European Conference on the Mathematics of Oil Recovery, Catania, Sicily, Italy, 8-11 September 2014. EAGE. 2014. doi: 10.3997/2214-4609.20141877.
 
 1. O. Møyner. [*Construction of Multiscale Preconditioners on Stratigraphic Grids*](https://drive.google.com/open?id=0B1GmpCOimV8nTkxzajEtRkhtNGs). In: ECMOR XIV – 14th European Conference on the Mathematics of Oil Recovery, Catania, Sicily, Italy, 8-11 September 2014. EAGE. 2014. doi: 10.3997/2214-4609.20141775.
 
-1. O. Møyner and KA. Lie. [*The multiscale finite volume method on unstructured grids*](https://drive.google.com/open?id=0B1GmpCOimV8nUFRzcWFlUXk0Z2c). In: SPE Reservoir Simulation Symposium, The Woodlands, TX, USA, 18–20 February 2013. SPE 163649-MS. 2013. doi: 10.2118/163649-MS.
+1. O. Møyner and K.-A. Lie. [*The multiscale finite volume method on unstructured grids*](https://drive.google.com/open?id=0B1GmpCOimV8nUFRzcWFlUXk0Z2c). In: SPE Reservoir Simulation Symposium, The Woodlands, TX, USA, 18–20 February 2013. SPE 163649-MS. 2013. doi: 10.2118/163649-MS.
 
 ## Theses
 
