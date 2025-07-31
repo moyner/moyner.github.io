@@ -1,6 +1,6 @@
 ---
 title: "CV"
-date: 2025-03-06
+date: 2025-07-31
 menu: 
     main:
         name: CV

@@ -1,7 +1,6 @@
-
 ---
 title: "Software"
-date: 2022-03-06
+date: 2025-07-31
 menu:
     main:
         name: Software

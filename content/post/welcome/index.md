@@ -2,7 +2,7 @@
 title: A first post
 description: Welcome to my website!
 slug: first-post
-date: 2025-07-31 00:00:00+0000
+date: 2025-07-31
 image: m.png
 categories:
     - General
