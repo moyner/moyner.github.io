@@ -11,6 +11,8 @@ menu:
 comments: false
 ---
 
+If you want access to any of the publications but are unable to do so because of paywalls, please contact me at [mail@olavmoyner.com](mailto:mail@olavmoyner.com).
+
 ## Preprints
 
 1. J. M. Nordbotten, M. A. Fernø, B. Flemisch, A. R. Kovscek, K.-A. Lie, J. W. Both, O. Møyner, T. H. Sandve, E. Ahusborde, S. Bauer, Z. Chen, H. Class, C. Di, D. Ding, D. Element, A. Firoozabadi, E. Flauraud, J. Franc, F. Gasanzade, Y. Ghomian, M. A. Giddins, C. Green, B. R. B. Fernandes, G. Hadjisotiriou, G. Hammond, H. Huang, D. Kachuma, M. Kern, T. Koch, P. Krishnamurthy, K. O. Lye, D. Landa-Marbán, M. Nole, P. Orsini, N. Ruby, P. Salinas, M. Sayyafzadeh, J. Solovský, J. Torben, A. Turner, D. V. Voskov, K. Wendel, A. A. Youssef [*Benchmarking CO2 Storage Simulations: Results from the 11th Society of Petroleum Engineers Comparative Solution Project*](https://arxiv.org/pdf/2507.15861)
