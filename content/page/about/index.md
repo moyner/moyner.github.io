@@ -1,9 +1,9 @@
 ---
-title: "About"
+title: "CV"
 date: 2025-03-06
 menu: 
     main:
-        name: About
+        name: CV
         weight: 2
         params: 
             icon: user
@@ -16,22 +16,6 @@ Welcome to the professional webpage of Olav Møyner. I'm a senior research scien
 ## Research interests
 
 My research interests include numerical simulation of flow and transport in porous media, which can model hydrocarbon recovery, CO2 sequestration, geothermal energy, groundwater flow and many other interesting physical processes. I work on efficient linear and nonlinear solvers, multiscale methods, reduced-order modelling, high-resolution schemes and solution strategies for model problems from these fields. See also: Publications
-
-## Open Source Software
-
-### MRST
-
-### Jutul.jl
-
-### JutulDarcy.jl
-
-### MultiComponentFlash.jl
-
-### BattMo.jl
-
-### GeoEnergyIO.jl
-
-In order to support scientific reproducibility, much of my research time is spent developing Open-Source solvers for simulation of flow in porous media as a part of the Matlab Reservoir Simulation Toolbox (MRST) and the Jutul / JutulDarcy simulators as well as battery simulation in BattMo.jl. The repositories for MRST are public on GitHub.
 
 ## CV
 
