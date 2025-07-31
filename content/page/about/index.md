@@ -11,11 +11,16 @@ menu:
 comments: false
 ---
 
-Welcome to the professional webpage of Olav Møyner. I'm a senior research scientist at SINTEF Digital, a not-for-profit independent research institute in Norway. I can most easily be reached at [mail@olavmoyner.com](mailto:mail@olavmoyner.com).
+Welcome to the professional webpage of Olav Møyner. I'm a senior research scientist in the [Applied Computational Sciences group](https://www.sintef.no/en/digital/departments-new/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/) at [SINTEF Digital](https://www.sintef.no/sintef-digital/), a [not-for-profit independent research institute](https://www.sintef.no/en/sintef-group/this-is-sintef/) in Norway. I can most easily be reached at [mail@olavmoyner.com](mailto:mail@olavmoyner.com).
 
 ## Research interests
 
-My research interests include numerical simulation of flow and transport in porous media, which can model hydrocarbon recovery, CO2 sequestration, geothermal energy, groundwater flow and many other interesting physical processes. I work on efficient linear and nonlinear solvers, multiscale methods, reduced-order modelling, high-resolution schemes and solution strategies for model problems from these fields. See also: Publications
+- Solution methods for coupled, nonlinear partial differential equations (PDEs)
+- Automatic differentiation and adjoint methods
+- Software design of industry grade simulators
+- Flow and transport in porous media, with applications in hydrocarbon recovery, carbon capture and sequestration, geothermal energy and groundwater flow
+- Numerical simulation of batteries
+- Discretizations for unstructured meshes (high-order and consistent schemes)
 
 ## CV
 
@@ -25,7 +30,7 @@ My research interests include numerical simulation of flow and transport in poro
 |-------|-------|------------------------------|------------------|
 | 2022  |  --   | Senior Research Scientist    | SINTEF Digital   |
 | 2016  | 2022  | Research Scientist           | SINTEF Digital   |
-| 2017  | 2020  | Postdoc (VISTA program)      | NTNU             |
+| 2017  | 2020  | Post. Doc. (VISTA program)   | NTNU             |
 | 2012  | 2016  | Scientific Software Developer| SINTEF ICT       |
 
 ### Education & academic visits
