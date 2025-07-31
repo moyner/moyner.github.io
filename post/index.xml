@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on Olav Møyner</title><link>https://moyner.github.io/post/</link><description>Recent content in Posts on Olav Møyner</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Thu, 31 Jul 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://moyner.github.io/post/index.xml" rel="self" type="application/rss+xml"/><item><title>A first post</title><link>https://moyner.github.io/p/first-post/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/first-post/</guid><description>&lt;img src="https://moyner.github.io/p/first-post/m.png" alt="Featured image of post A first post" />&lt;p>Welcome to my website. I have migrated to Hugo from Google Sites to make the website easier to update, and migrate if need be. In the future, posts about my research and work may appear here - or it may not. Stay tuned!&lt;/p></description></item><item><title>Running a reservoir simulation on my phone</title><link>https://moyner.github.io/p/phone-simulation/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/phone-simulation/</guid><description>&lt;img src="https://moyner.github.io/p/phone-simulation/header.png" alt="Featured image of post Running a reservoir simulation on my phone" />&lt;p>The trend has been to move compute heavy workloads over into the cloud, but today I did the opposite and put it in my pocket! Using the new &lt;a class="link" href="https://www.androidpolice.com/android-15-linux-terminal-app/" target="_blank" rel="noopener"
+>Android 16 Linux terminal&lt;/a> on my Pixel, I’m running a reservoir simulation on my phone 😎&lt;/p>
+&lt;p>The Linux terminal is a proper Debian setup, so I naturally installed julia and JutulDarcy to test the computational performance. The setup was fairly straightforward: Install &lt;a class="link" href="https://github.com/JuliaLang/juliaup" target="_blank" rel="noopener"
+>juliaup&lt;/a> and add the latest release. I then added JutulDarcy and HYPRE to the default environment. The precompilation crashed towards the end of the setup - perhaps due to the screen going to sleep - but once I restarted Julia, everything ran nicely.&lt;/p>
+&lt;p>On a small SPE9 case, it is surprisingly performant with a runtime comparable to that of a laptop. This case only has 9000 cells and ~18k degrees of freedom, so I also ran the larger OLYMPUS 1 case (~200k cells, ~400k degrees of freedom), runtime was roughly 2x that of my laptop when both devices were using a single thread.&lt;/p>
+&lt;p>I don’t foresee that I’m going to switch to my phone for running simulations any time soon, but it is impressive to see how powerful phone CPUs have gotten. ARM support is also pretty good in Julia, probably a side effect of macOS support that now also uses ARM. If you want to get reasonable performance you will have to keep the screen on and the Linux app open - it appears that the Android process manager heavily priortizes the active application.&lt;/p>
+&lt;div class="video-wrapper">
+&lt;video
+controls
+src="pixel-run.mp4"
+>
+&lt;p>
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="pixel-run.mp4">link to the video&lt;/a> instead.
+&lt;/p>
+&lt;/video>
+&lt;/div></description></item></channel></rss>

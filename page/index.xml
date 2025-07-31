@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Pages on Olav Møyner</title><link>https://moyner.github.io/page/</link><description>Recent content in Pages on Olav Møyner</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Thu, 31 Jul 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://moyner.github.io/page/index.xml" rel="self" type="application/rss+xml"/><item><title>Archives</title><link>https://moyner.github.io/archives/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/archives/</guid><description/></item><item><title>CV</title><link>https://moyner.github.io/cv/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/cv/</guid><description>&lt;p>Welcome to the professional webpage of Olav Møyner. I&amp;rsquo;m a senior research scientist in the &lt;a class="link" href="https://www.sintef.no/en/digital/departments-new/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/" target="_blank" rel="noopener"
+>Applied Computational Sciences group&lt;/a> at &lt;a class="link" href="https://www.sintef.no/sintef-digital/" target="_blank" rel="noopener"
+>SINTEF Digital&lt;/a>, a &lt;a class="link" href="https://www.sintef.no/en/sintef-group/this-is-sintef/" target="_blank" rel="noopener"
+>not-for-profit independent research institute&lt;/a> in Norway. I can most easily be reached at &lt;a class="link" href="mailto:mail@olavmoyner.com" >mail@olavmoyner.com&lt;/a>.&lt;/p>
+&lt;h2 id="research-interests">Research interests
+&lt;/h2>&lt;ul>
+&lt;li>Solution methods for coupled, nonlinear partial differential equations (PDEs)&lt;/li>
+&lt;li>Automatic differentiation and adjoint methods&lt;/li>
+&lt;li>Software design of industry grade simulators&lt;/li>
+&lt;li>Flow and transport in porous media, with applications in hydrocarbon recovery, carbon capture and sequestration, geothermal energy and groundwater flow&lt;/li>
+&lt;li>Numerical simulation of batteries&lt;/li>
+&lt;li>Discretizations for unstructured meshes (high-order and consistent schemes)&lt;/li>
+&lt;/ul>
+&lt;h2 id="cv">CV
+&lt;/h2>&lt;h3 id="work-experience">Work experience
+&lt;/h3>&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Start&lt;/th>
+&lt;th>End&lt;/th>
+&lt;th>Title&lt;/th>
+&lt;th>Institution&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>2022&lt;/td>
+&lt;td>&amp;ndash;&lt;/td>
+&lt;td>Senior Research Scientist&lt;/td>
+&lt;td>SINTEF Digital&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2016&lt;/td>
+&lt;td>2022&lt;/td>
+&lt;td>Research Scientist&lt;/td>
+&lt;td>SINTEF Digital&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2017&lt;/td>
+&lt;td>2020&lt;/td>
+&lt;td>Post. Doc. (VISTA program)&lt;/td>
+&lt;td>NTNU&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2012&lt;/td>
+&lt;td>2016&lt;/td>
+&lt;td>Scientific Software Developer&lt;/td>
+&lt;td>SINTEF ICT&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="education--academic-visits">Education &amp;amp; academic visits
+&lt;/h3>&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Start&lt;/th>
+&lt;th>End&lt;/th>
+&lt;th>Title&lt;/th>
+&lt;th>Institution&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>2019&lt;/td>
+&lt;td>2019&lt;/td>
+&lt;td>Visting scholar, Stanford University&lt;/td>
+&lt;td>Stanford&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2013&lt;/td>
+&lt;td>2016&lt;/td>
+&lt;td>&lt;a class="link" href="https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2431831" target="_blank" rel="noopener"
+>Ph.D. (Department of Mathematical Sciences)&lt;/a>&lt;/td>
+&lt;td>NTNU&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2015&lt;/td>
+&lt;td>2016&lt;/td>
+&lt;td>Visiting student researcher&lt;/td>
+&lt;td>Stanford&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>2007&lt;/td>
+&lt;td>2012&lt;/td>
+&lt;td>M.Sc. / Siv.Ing. Physics and Mathematics&lt;/td>
+&lt;td>NTNU&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="awards">Awards
+&lt;/h3>&lt;h4 id="siam-gs-early-career-prize">SIAM GS Early career prize
+&lt;/h4>&lt;p>Awarded the 2019 &lt;a class="link" href="https://siam-web.useast01.umbraco.io/publications/siam-news/articles/april-prize-spotlight-omar-ghattas-and-olav-m248yner/" target="_blank" rel="noopener"
+>Society for Industrial and Applied Mathematics (SIAM) Geosciences Activity Group Early Career Prize&lt;/a>.&lt;/p>
+&lt;p>Prize citation: &lt;em>The SIAM Activity Group on Geosciences (SIAG/GS) awards the SIAG/GS Early Career Prize to an individual in their early career for distinguished research contributions to the solution of mathematical and computational problems in the geosciences published in the three calendar years prior to the award year. The award recognizes Møyner for his elegant and insightful contributions to theory, algorithms, and software for multiscale porous flow simulation, and for his exceptional scholarly productivity and impact on practice.&lt;/em>&lt;/p>
+&lt;h4 id="dimitris-n-chorafas-prize-for-best-phd-thesis-at-ntnu">Dimitris N. Chorafas prize for best PhD thesis at NTNU
+&lt;/h4>&lt;p>Awarded the 2016 &lt;a class="link" href="https://www.weizmann.ac.il/wsos/about/dimitris-n-chorafas-prize/about-foundation-and-prize" target="_blank" rel="noopener"
+>Dimitris N. Chorafas prize&lt;/a> given to a single PhD thesis at NTNU each year.&lt;/p>
+&lt;p>&lt;em>The Dimitris N. Chorafas Foundation awards scientific prizes for outstanding work in selected fields in the engineering sciences, medicine and the natural sciences. It rewards research characterized by its high potential for practical application and by the special significance attached to its aftermath. Every year, partner universities in Europe, North America and Asia evaluate the research work of their graduating doctorate students and propose the best for prizing.&lt;/em>&lt;/p></description></item><item><title>Publications</title><link>https://moyner.github.io/publications/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/publications/</guid><description>&lt;p>If you want access to any of the publications but are unable to do so because of paywalls, please contact me at &lt;a class="link" href="mailto:mail@olavmoyner.com" >mail@olavmoyner.com&lt;/a>.&lt;/p>
+&lt;h2 id="preprints">Preprints
+&lt;/h2>&lt;ol>
+&lt;li>
+&lt;p>J. M. Nordbotten, M. A. Fernø, B. Flemisch, A. R. Kovscek, K.-A. Lie, J. W. Both, O. Møyner, T. H. Sandve, E. Ahusborde, S. Bauer, Z. Chen, H. Class, C. Di, D. Ding, D. Element, A. Firoozabadi, E. Flauraud, J. Franc, F. Gasanzade, Y. Ghomian, M. A. Giddins, C. Green, B. R. B. Fernandes, G. Hadjisotiriou, G. Hammond, H. Huang, D. Kachuma, M. Kern, T. Koch, P. Krishnamurthy, K. O. Lye, D. Landa-Marbán, M. Nole, P. Orsini, N. Ruby, P. Salinas, M. Sayyafzadeh, J. Solovský, J. Torben, A. Turner, D. V. Voskov, K. Wendel, A. A. Youssef &lt;a class="link" href="https://arxiv.org/pdf/2507.15861" target="_blank" rel="noopener"
+>&lt;em>Benchmarking CO2 Storage Simulations: Results from the 11th Society of Petroleum Engineers Comparative Solution Project&lt;/em>&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>E. Ahmed, B. Amaziane, S. Chabab, S. D. Santacreu, G. Galliéro, O. Møyner, X. Raynaud
+&lt;a class="link" href="https://arxiv.org/pdf/2506.02582" target="_blank" rel="noopener"
+>Modeling and Simulation of Coupled Biochemical and Two-Phase Compositional Flow in Underground Hydrogen Storage&lt;/a>&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="journal-publications">Journal publications
+&lt;/h2>&lt;ol>
+&lt;li>
+&lt;p>O. Møyner &lt;a class="link" href="https://link.springer.com/content/pdf/10.1007/s10596-025-10366-6.pdf" target="_blank" rel="noopener"
+>&lt;em>JutulDarcy. jl-a fully differentiable high-performance reservoir simulator based on automatic differentiation&lt;/em>&lt;/a>, Computational Geosciences (2025)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>L. Bertoni, O. Møyner, J. Wiegner, M. Gazzani, &lt;a class="link" href="https://doi.org/10.1016/j.compchemeng.2025.109293" target="_blank" rel="noopener"
+>&lt;em>Optimizing carbon capture and storage infrastructure including physics-based reservoir modeling&lt;/em>&lt;/a>, Computers &amp;amp; Chemical Engineering (2025)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.-A. Lie, O. Møyner, Ø. Klemetsdal, &lt;a class="link" href="https://doi.org/10.2118/212199-PA" target="_blank" rel="noopener"
+>&lt;em>Accelerating Nonlinear Convergence in Reservoir Simulation by Adaptive Relaxation and Nonlinear Domain-Decomposition Preconditioning&lt;/em>&lt;/a>, SPE Journal (2025)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>R.H. Deucher, J. Franc, O. Møyner, H.A. Tchelepi, &lt;em>Compositional reservoir simulation with a high-resolution compact stencil adaptive implicit method&lt;/em>, Journal of Computational Physics (2025)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>J. Li, L. Zhao, O. Møyner, K.A. Lie, &lt;em>A new near-wellbore modeling method for deviated wells in corner-point grid&lt;/em>, Advances in Geo-Energy Research (2025)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>B.N. Aslam, B. Yan, K.A. Lie, S. Krogstad, O. Møyner, X. He, &lt;em>A novel hybrid physics/data-driven model for fractured reservoir simulation&lt;/em>, SPE Journal (2024)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>E. Ahmed, O. Møyner, X. Raynaud, H.M. Nilsen, &lt;em>Phase behavior and black-oil simulations of Hydrogen storage in saline aquifers&lt;/em>, Advances in Water Resources (2024)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>L. Saló-Salgado, O. Møyner, K.A. Lie, R. Juanes, &lt;em>Three-dimensional simulation of geologic carbon dioxide sequestration using MRST&lt;/em>, Advances in Geo-Energy Research (2024)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Z. Yin, M. Louboutin, O. Møyner, F.J. Herrmann, &lt;em>Time-lapse full-waveform permeability inversion: A feasibility study&lt;/em>, The Leading Edge (2024)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>W. Xiong, Z.H. Zhang, Y.L. Zhao, W.M. Wen, K. Bao, O. Møyner, K.A. Lie, &lt;em>Compositional simulation for carbon storage in porous media using an electrolyte association equation of state&lt;/em>, SPE Journal (2024)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>J. Franc, O. Møyner, H.A. Tchelepi, &lt;em>Coupling-strength criteria for sequential implicit formulations&lt;/em>, Journal of Computational Physics (2023)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, A.F. Rasmussen, Ø. Klemetsdal, H.M. Nilsen, A. Moncorgé, K.A. Lie, &lt;em>Nonlinear domain-decomposition preconditioning for robust and efficient field-scale simulation of subsurface flow&lt;/em>, Computational Geosciences (2023)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>M. Louboutin, Z. Yin, R. Orozco, T.J. Grady, A. Siahkoohi, G. Rizzuti, P.A. Witte, O. Møyner, G.J. Gorman, F.J. Herrmann, &lt;em>Learned multiphysics inversion with differentiable programming and machine learning&lt;/em>, The Leading Edge (2023)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø.S. Klemetsdal, A. Moncorgé, H.M. Nilsen, O. Møyner, K.A. Lie, &lt;em>An adaptive sequential fully implicit domain-decomposition solver&lt;/em>, SPE Journal (2022)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>E. Ahmed, Ø. Klemetsdal, X. Raynaud, O. Møyner, H.M. Nilsen, &lt;em>Adaptive Timestepping, Linearization, and A Posteriori Error Control for Multiphase Flow of Immiscible Fluids in Porous Media with Wells&lt;/em>, SPE Journal (2022)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>X. Raynaud, A. Pizzolato, A. Johansson, F. Caresani, A. Ferrari, O. Møyner, H.M. Nilsen, A. Cominelli, K.A. Lie, &lt;em>Toward accurate reservoir simulations on unstructured grids: design of simple error estimators and critical benchmarking of consistent discretization methods for practical implementation&lt;/em>, SPE Journal (2021)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, O. Møyner, A. Moncorgé, H.M. Nilsen, K.A. Lie, &lt;em>High-resolution compositional reservoir simulation with dynamic coarsening and local timestepping for unstructured grids&lt;/em>, SPE Journal (2021)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>H. Ni, O. Møyner, K.D. Kurtev, S.M. Benson, &lt;em>Quantifying CO2 capillary heterogeneity trapping through macroscopic percolation simulation&lt;/em>, Advances in Water Resources 155 (2021)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, O. Møyner, A. Moncorgé, K.A. Lie, &lt;em>A numerical study of the additive Schwarz preconditioned exact Newton method (ASPEN) as a nonlinear preconditioner for immiscible and compositional porous media flow&lt;/em>, Computational Geosciences (2021)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>M. Alcanié, M. Collignon, O. Møyner, M. Lupi, &lt;em>3D Basin‐scale groundwater flow modeling as a tool for geothermal exploration: Application to the Geneva basin, Switzerland‐France&lt;/em>, Geochemistry, Geophysics, Geosystems (2021)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>S.B.S. Bosma, S. Klevtsov, O. Møyner, N. Castelletto, &lt;em>Enhanced multiscale restriction-smoothed basis (MsRSB) preconditioning with applications to porous media flow and geomechanics&lt;/em>, Journal of Computational Physics (2021)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>M. Collignon, Ø. Klemetsdal, O. Møyner, M. Alcanié, A.P. Rinaldi, H.M. Nilsen, M. Lupi, &lt;em>Evaluating thermal losses and storage capacity in high-temperature aquifer thermal energy storage (HT-ATES) systems with well operating limits: insights from a study-case in the Greater Geneva Basin, Switzerland&lt;/em>, Geothermics (2020)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>G. Linga, O. Møyner, H.M. Nilsen, A. Moncorgé, K.A. Lie, &lt;em>An implicit local time-stepping method based on cell reordering for multiphase flow in porous media&lt;/em>, Journal of Computational Physics X (2020)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, H.M. Nilsen, O. Andersen, &lt;em>Multi-Model Hybrid Compositional Simulator With Application To Segregated Flow&lt;/em>, Computational Geosciences (2019)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>A. Moncorgé, O. Møyner, H.A. Tchelepi, P. Jenny, &lt;em>Consistent upwinding for sequential fully-implicit multiscale compositional simulation&lt;/em>, Computational Geosciences (2019)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, A. Moncorgé, &lt;em>Nonlinear Domain Decomposition Scheme for Sequential Fully Implicit Formulation of Compositional Multiphase Flow&lt;/em>, Computational Geosciences (2019)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, O. Møyner, K.A. Lie, &lt;em>Efficient Reordered Nonlinear Gauss-Seidel Solvers With Higher Order For Black-Oil Models&lt;/em>, Computational Geosciences, DOI: 10.1007/s10596-019-09844-5 (2019)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, O. Møyner, K.A. Lie, &lt;em>Accelerating Multiscale Simulation of Complex Geomodels by Use of Dynamically Adapted Basis Functions&lt;/em>, Computational Geosciences (2019)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.A. Lie, O. Møyner, T.S. Mykkeltvedt, &lt;em>Fully Implicit WENO Schemes On Stratigraphic And Fully Unstructured Grids&lt;/em>, Computational Geosciences (2019)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, O. Møyner, K.A. Lie, &lt;em>Robust nonlinear Newton solver with adaptive interface-localized trust regions&lt;/em>, SPE Journal (2019)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, H.M. Nilsen, &lt;em>Multiresolution Coupled Vertical Equilibrium Model for Fast Flexible Simulation of CO2 storage&lt;/em>, Computational Geosciences (2019)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>R. Allen, H.M. Nilsen, K.A. Lie, O. Møyner, O. Andersen, &lt;em>Using Simplified Methods to Explore the Impact of Parameter Uncertainty on CO2 Storage Estimates with Application to the Norwegian Continental Shelf&lt;/em>, International Journal of Greenhouse Gas Control (2019)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, H.A. Tchelepi, &lt;em>A Mass-Conservative Sequential Implicit Multiscale Method for General Compositional Problems&lt;/em>, SPE Journal (2019)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.A. Lie, O. Møyner, J.R. Natvig, &lt;em>Use of Multiple Multiscale Operators To Accelerate Simulation of Complex Geomodels&lt;/em>, SPE Journal (2017)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, &lt;em>Nonlinear Solver for Three-Phase Transport Problems Based on Approximate Trust Regions&lt;/em>, Computational Geosciences (2017)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.A. Lie, O. Møyner, J.R. Natvig, A. Kozlova, K. Bratvedt, S. Watanabe, &lt;em>Successful Application of Multiscale Methods in a Real Reservoir Simulator Environment&lt;/em>, Computational Geosciences (2017)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K. Bao, K.A. Lie, O. Møyner, M. Liu, &lt;em>Fully-implicit simulation of polymer flooding with MRST&lt;/em>, Computational Geosciences (2017)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>S. Shah, O. Møyner, M. Tene, K.A. Lie, H. Hajibeygi, &lt;em>The multiscale restriction smoothed basis method for fractured porous media (F-MsRSB)&lt;/em>, Journal of Computational Physics 318 (2016)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, K.A. Lie, &lt;em>A Multiscale Restriction-Smoothed Basis Method for Compressible Black-Oil Models&lt;/em>, SPE Journal 21.6 (2016)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>S.T. Hilden, O. Møyner, K.A. Lie, K. Bao, &lt;em>Multiscale Simulation of Polymer Flooding with Shear Effects&lt;/em>, Transport in Porous Media 113.1 (2016)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, K.A. Lie, &lt;em>A Multiscale Restriction-Smoothed Basis Method for High Contrast Porous Media Represented on Unstructured Grids&lt;/em>, Journal of Computational Physics 304 (2015)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.A. Lie, H.M. Nilsen, O. Andersen, O. Møyner, &lt;em>A simulation workflow for large-scale CO2 storage in the Norwegian North Sea&lt;/em>, Computational Geosciences (2015)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>H.M. Nilsen, K.A. Lie, O. Møyner, O. Andersen, &lt;em>Spill-point analysis and structural trapping capacity in saline aquifers using MRST-co2lab&lt;/em>, Computers &amp;amp; Geosciences 75 (2015)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, S. Krogstad, K.A. Lie, &lt;em>The application of flow diagnostics for reservoir management&lt;/em>, SPE Journal 20.2 (2014)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, K.A. Lie, &lt;em>A multiscale two-point flux-approximation method&lt;/em>, Journal of Computational Physics 275 (2014)&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, K.A. Lie, &lt;em>The multiscale finite-volume method on stratigraphic grids&lt;/em>, SPE Journal 19.5 (2014)&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="books">Books
+&lt;/h2>&lt;ol>
+&lt;li>K.-A. Lie, O. Møyner (Editors). &lt;em>Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)&lt;/em>, Cambridge University Press (2021)&lt;/li>
+&lt;/ol>
+&lt;h2 id="peer-reviewed-book-chapters">Peer-reviewed book chapters
+&lt;/h2>&lt;p>In &lt;em>Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)&lt;/em> (2021):&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>O. Møyner. &amp;ldquo;Better AD Simulators with Flexible State Functions and Accurate Discretizations&amp;rdquo;&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner. &amp;ldquo;Faster Simulation with Optimized Automatic Differentiation and Compiled Linear Solvers&amp;rdquo;&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner. &amp;ldquo;Compositional Simulation with the AD-OO Framework&amp;rdquo;&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.-A. Lie and O. Møyner &amp;ldquo;Multiscale Pressure Solvers for Stratigraphic and Polytopal Grids&amp;rdquo;&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>M. Collignon, Ø.S. Klemetsdal, O. Møyner &amp;ldquo;Simulation of Geothermal Systems using MRST&amp;rdquo;&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="conference-proceedings">Conference proceedings
+&lt;/h2>&lt;ol>
+&lt;li>
+&lt;p>S. Krogstad, M. A. Jakymec, A. Kianinejad, D. Pertuso, S. Matringe, A. Brostrom, J. Torben, O. Møyner, K.-A. Lie
+&lt;a class="link" href="https://doi.org/10.15530/urtec-2025-4253913" target="_blank" rel="noopener"
+>Reduced Physics-Based Simulation for Unconventional Production Forecasting-A 1D Approach&lt;/a>. SPE/AAPG/SEG Unconventional Resources Technology Conference June 2025.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner and K.-A. Lie. A data-driven approach to select optimal time steps for complex reservoir models. SPE Reservoir Simulation Conference, Galveston, Texas, USA, 25-27 Mar 2025.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K. Holme, K.-A. Lie, O. Møyner, A. Johansson. Grid-orientation effects in the 11th SPE Comparative Solution Project using unstructured grids and consistent discretizations SPE Reservoir Simulation Conference, Galveston, Texas, USA, 25-27 Mar 2025.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, &lt;em>JutulDarcy.jl - a fully differentiable high-performance reservoir simulator based on automatic differentiation&lt;/em>, ECMOR 2024&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.A. Lie, O. Møyner, Ø. Klemetsdal, B. Skaflestad, A. Moncorgé, V. Kippe, &lt;em>Enhancing Performance of Complex Reservoir Models via Convergence Monitors&lt;/em>, ECMOR 2024&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>A.F. Rasmussen, O. Møyner, B. Skaflestad, K.A. Lie, J. Torben, A. Moncorgé, V. Kippe, &lt;em>Distributed Field-Scale Parallel Nonlinear Domain Decomposition Solver&lt;/em>, ECMOR 2024&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>BN. Aslam, B. Yan, K.-A. Lie, S. Krogstad, O. Møyner, X. He, &lt;em>DiagNet-A Hybrid Physics-Data Driven Model for Fractured Reservoir Simulation&lt;/em>, SPE GOTECH, 2024&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K-A. Lie, O. Møyner, Ø.A. Klemetsdal, &lt;em>An Adaptive Newton–ASPEN Solver for Complex Reservoir Models&lt;/em>, SPE Reservoir Simulation Conference 2023&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O Møyner, A Rasmussen, Ø Klemetsdal, H Nilsen, A Moncorgé, K Lie, &lt;em>Nonlinear Domain Decomposition Preconditioning for Robust and Efficient Field-Scale Simulation of Subsurface Flow&lt;/em>, ECMOR 2022&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>MAB. Reveron, HH. Holm, O. Møyner, S. Krogstad, K.-A. Lie &lt;em>Numerical Comparison Between ES-MDA and Gradient-Based Optimization for History Matching of Reduced Reservoir Models&lt;/em>, SPE Reservoir Simulation Conference 2021&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, O. Møyner, A. Moncorgé, HM. Nilsen, K.-A. Lie, &lt;em>High-resolution compositional reservoir simulation with dynamic coarsening and local timestepping for unstructured grids&lt;/em>, SPE Reservoir Simulation Conference 2021&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>J. Franc, O. Møyner, HA. Tchelepi &lt;em>Coupling-Strength Criteria for Sequential Implicit Formulations&lt;/em>, SPE Reservoir Simulation Conference 2021&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>E. Ahmed, Ø. Klemetsdal, X. Raynaud, O. Møyner, H.M. Nilsen, &lt;em>Adaptive Time Stepping, Linearization and a Posteriori Error Control for Multiphase Flow with Wells&lt;/em>, SPE Reservoir Simulation Conference 2021&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner. &lt;em>Dynamic Saturation Reconstruction for Multiphase Flow by Time-Of-Flight Fill Functions&lt;/em>. In ECMOR XVII 2020.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, A. Moncorgé, O. Møyner, K.-A. Lie. &lt;em>Additive Schwarz Preconditioned Exact Newton Method as a Nonlinear Preconditioner for Multiphase Porous Media Flow&lt;/em>. In ECMOR XVII 2020.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>HM. Nilsen, A. Moncorgé, K. Bao, O. Møyner, K.-A. Lie, A. Brodtkorb. &lt;em>Comparison Between Algebraic Multigrid and Multilevel Multiscale Methods for Reservoir Simulation&lt;/em>. In ECMOR XVII 2020.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>M. Borregales, O. Møyner, S. Krogstad, K.-A. Lie. &lt;em>Data-Driven Models Based on Flow Diagnostics&lt;/em>. In ECMOR XVII 2020.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, O. Møyner, X. Raynaud, K.-A. Lie. &lt;em>A Comparison of Consistent Discretizations for Elliptic Problems on Polyhedral Grids&lt;/em>. In: International Conference on Finite Volumes for Complex Applications, 585-594. 2020.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, O. Møyner and K.-A. Lie. &lt;em>Implicit High-Resolution Compositional Simulation With Optimal Ordering of Unknowns and Adaptive Spatial Refinement&lt;/em> In: Reservoir Simulation Conference, Galveston, Texas, USA, 10-11 April 2019&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>R. Toft, K.-A. Lie, and O. Møyner. &lt;em>Full Approximation Scheme for Reservoir Simulation.&lt;/em> In: Norsk Informatikkonferanse (NIK), 18-20 September, 2018.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner and A. Moncorgé. &lt;a class="link" href="https://drive.google.com/open?id=1_pf73QtG0Rem8jWSTAvId8NQ6SKgAdX1" target="_blank" rel="noopener"
+>&lt;em>Nonlinear Domain Decomposition Scheme for Sequential Fully Implicit Formulation of Compositional Multiphase Flow&lt;/em>&lt;/a>. In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, A. F. Rasmussen, O. Møyner and K.-A. Lie. &lt;a class="link" href="http://dx.doi.org/10.1007/s10596-019-09844-5" target="_blank" rel="noopener"
+>&lt;em>Nonlinear Gauss-Seidel Solvers With Higher Order For Black-Oil Models&lt;/em>&lt;/a>. In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, O. Møyner and K.-A. Lie. &lt;a class="link" href="https://drive.google.com/open?id=1BkiqjAVaQhboFfpRjXXKVGgGQ4O4gz-x" target="_blank" rel="noopener"
+>&lt;em>Use Of Dynamically Adapted Basis Functions To Accelerate Multiscale Simulation Of Complex Geomodels&lt;/em>&lt;/a>. In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.-A. Lie, O. Møyner and T. S. Mykkeltvedt. &lt;a class="link" href="https://drive.google.com/open?id=1de3vRVpiy330y8F1xkKFoqK4z7V2l-Zu" target="_blank" rel="noopener"
+>&lt;em>Fully Implicit WENO Schemes On Stratigraphic And Fully Unstructured Grids&lt;/em>&lt;/a>. In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner, O. Andersen and H. M. Nilsen. &lt;a class="link" href="https://drive.google.com/open?id=1QpRSgQKQ-99RFIIlD1Hto1Q_liDaqJKE" target="_blank" rel="noopener"
+>&lt;em>Multi-Model Hybrid Compositional Simulator with Application to Segregated flow&lt;/em>&lt;/a>. In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, O. Møyner, X. Raynaud, and K.-A. Lie. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nRUx5RjJUN0JHdDQ" target="_blank" rel="noopener"
+>&lt;em>Non-linear Newton Solver for a Polymer Two-phase System Using Interface-localized Trust Regions&lt;/em>&lt;/a>. In: 19th European Conference on Improved Oil Recovery, Stavanger, Norway, 24-27 April 2017. 2017.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.-A. Lie, O. Møyner, and J. R. Natvig. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nelNWeFRRSlVWb00" target="_blank" rel="noopener"
+>&lt;em>A Feature-Enriched Multiscale Method for Simulating Complex Geomodels&lt;/em>&lt;/a>. In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal, R. L. Berge, K.-A. Lie, H. M. Nilsen, and O. Møyner. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nRTM2cTVQc2NyMjQ" target="_blank" rel="noopener"
+>&lt;em>Unstructured Gridding and Consistent Discretizations for Reservoirs With Faults and Complex Wells&lt;/em>&lt;/a>. In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner and H.A. Tchelepi. *A Multiscale Restriction-Smoothed Basis Method for Compositional Models. In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8ncEFyRk03eDFlVzQ" target="_blank" rel="noopener"
+>&lt;em>Nonlinear Solver for Three-Phase Transport Problems Based on Approximate Trust Regions&lt;/em>&lt;/a>. In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.-A. Lie, O. Møyner, J. R. Natvig, A. Kozlova, K. Bratvedt, and S. Watanabe. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nX0xXMG5VRzJtVHM" target="_blank" rel="noopener"
+>&lt;em>Successful Application of Multiscale Methods in a Real Reservoir Simulator Environment&lt;/em>&lt;/a>. In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K. Bao, K.-A. Lie, O. Møyner, and M. Liu. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nazJHZnhuZEE2bm8" target="_blank" rel="noopener"
+>&lt;em>Fully Implicit Simulation of Polymer Flooding with MRST&lt;/em>&lt;/a>. In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner and K.-A. Lie. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nbEUzbERoZ2NHb1E" target="_blank" rel="noopener"
+>&lt;em>A Multiscale Method Based on Restriction-Smoothed Basis Functions Suitable for General Grids in High Contrast Media&lt;/em>&lt;/a>. In: SPE Reservoir Simulation Symposium held in Houston, Texas, USA, 23–25 February 2015.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.-A. Lie, S. Krogstad, and O. Møyner. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nbEUzbERoZ2NHb1E" target="_blank" rel="noopener"
+>&lt;em>Application of flow diagnostics and multiscale methods for reservoir management&lt;/em>&lt;/a>. In: Reservoir Simulation Symposium, Houston, Texas, USA, 23-25 February 2015&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>S. Krogstad, K.-A. Lie, O. Møyner, H.M. Nilsen, X. Raynaud, and B. Skaflestad. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nVFV3ZnFFQjA4UzA" target="_blank" rel="noopener"
+>&lt;em>MRST-AD – an Open-Source Framework for Rapid Prototyping and Evaluation of Reservoir Simulation Problems&lt;/em>&lt;/a>. In: SPE Reservoir Simulation Symposium, 23–25 February, Houston, Texas. 2015.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>K.-A. Lie, H.M. Nilsen, O. Andersen, and O. Møyner. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nX003VmxSMDlPS2c" target="_blank" rel="noopener"
+>&lt;em>A simulation workflow for large-scale CO2 storage in the Norwegian North Sea&lt;/em>&lt;/a>. In: ECMOR XIV – 14th European Conference on the Mathematics of Oil Recovery, Catania, Sicily, Italy, 8-11 September 2014. EAGE. 2014. doi: 10.3997/2214-4609.20141877.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nTkxzajEtRkhtNGs" target="_blank" rel="noopener"
+>&lt;em>Construction of Multiscale Preconditioners on Stratigraphic Grids&lt;/em>&lt;/a>. In: ECMOR XIV – 14th European Conference on the Mathematics of Oil Recovery, Catania, Sicily, Italy, 8-11 September 2014. EAGE. 2014. doi: 10.3997/2214-4609.20141775.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner and K.-A. Lie. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nUFRzcWFlUXk0Z2c" target="_blank" rel="noopener"
+>&lt;em>The multiscale finite volume method on unstructured grids&lt;/em>&lt;/a>. In: SPE Reservoir Simulation Symposium, The Woodlands, TX, USA, 18–20 February 2013. SPE 163649-MS. 2013. doi: 10.2118/163649-MS.&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="theses">Theses
+&lt;/h2>&lt;ol>
+&lt;li>
+&lt;p>O. Møyner. &lt;a class="link" href="https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2431831" target="_blank" rel="noopener"
+>&lt;em>Next Generation Multiscale Methods for Reservoir Simulation&lt;/em>&lt;/a>. Ph.D. thesis, Norwegian University of Science and Technology (NTNU). 2016.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>O. Møyner. &lt;a class="link" href="https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/259015" target="_blank" rel="noopener"
+>&lt;em>Multiscale Finite Volume Methods: Extension to Unstructured Grids with Applications in Reservoir Simulation&lt;/em>&lt;/a>. M.Sc. thesis, NTNU. 2012.&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;h2 id="other">Other
+&lt;/h2>&lt;ol>
+&lt;li>
+&lt;p>O. Møyner. &lt;em>Multiscale Simulation of Flow and Transport in Porous Media&lt;/em>. SIAM News, 2019.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Ø. Klemetsdal and O. Møyner. &lt;em>Using physics to speed up reservoir simulation&lt;/em>. European Consortium for Mathematics in Industry news page, 2018.&lt;/p>
+&lt;/li>
+&lt;/ol></description></item><item><title>Software</title><link>https://moyner.github.io/software/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/software/</guid><description>&lt;p>I enjoy writing software, and much of my work depends on high-quality software, usually with some flavor of automatic differentiation. This pages lists open source software where I am a maintainer. See also &lt;a class="link" href="https://github.com/moyner" target="_blank" rel="noopener"
+>my GitHub profile&lt;/a>.&lt;/p>
+&lt;h1 id="mrst">MRST
+&lt;/h1>&lt;p>&lt;img src="https://moyner.github.io/software/mrst.png"
+width="376"
+height="124"
+srcset="https://moyner.github.io/software/mrst_hu_a2e3c24b012604da.png 480w, https://moyner.github.io/software/mrst_hu_a72f7f8db9239a11.png 1024w"
+loading="lazy"
+alt="MRST logo"
+class="gallery-image"
+data-flex-grow="303"
+data-flex-basis="727px"
+>&lt;/p>
+&lt;p>The &lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+>MATLAB Reservoir Simulation Toolbox (MRST)&lt;/a> is an &lt;a class="link" href="https://www.sintef.no/projectweb/mrst/" target="_blank" rel="noopener"
+>open source toolbox for simulation of flow, mechanics and transport in porous media&lt;/a> developed at &lt;a class="link" href="https://www.sintef.no/en/digital/departments-new/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/" target="_blank" rel="noopener"
+>group for Applied Computational Science&lt;/a>. The software has been used in over &lt;a class="link" href="https://www.sintef.no/projectweb/mrst/publications/" target="_blank" rel="noopener"
+>1000 publications all over the world&lt;/a>.&lt;/p>
+&lt;h1 id="jutuljl">Jutul.jl
+&lt;/h1>&lt;p>&lt;img src="https://moyner.github.io/software/jutul_small.png"
+width="607"
+height="181"
+srcset="https://moyner.github.io/software/jutul_small_hu_efd89f1765f7c183.png 480w, https://moyner.github.io/software/jutul_small_hu_e93a8fcdafeb0e33.png 1024w"
+loading="lazy"
+alt="Jutul.jl logo"
+class="gallery-image"
+data-flex-grow="335"
+data-flex-basis="804px"
+>&lt;/p>
+&lt;p>&lt;a class="link" href="https://github.com/sintefmath/Jutul.jl" target="_blank" rel="noopener"
+>Jutul.jl&lt;/a> is a Julia framework for fully differentiable multiphysics simulators based on implicit finite-volume methods with automatic differentiation with integrated support for 3D visualization and adjoints. Used for several applications, including reservoir simulation, carbon capture, battery simulation and more.&lt;/p>
+&lt;h1 id="jutuldarcyjl">JutulDarcy.jl
+&lt;/h1>&lt;p>&lt;img src="https://moyner.github.io/software/jutuldarcy_wide.png"
+width="994"
+height="181"
+srcset="https://moyner.github.io/software/jutuldarcy_wide_hu_23a7d53f8331b764.png 480w, https://moyner.github.io/software/jutuldarcy_wide_hu_681391aa960c66e6.png 1024w"
+loading="lazy"
+alt="JutulDarcy.jl logo"
+class="gallery-image"
+data-flex-grow="549"
+data-flex-basis="1318px"
+>&lt;/p>
+&lt;p>&lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+>JutulDarcy.jl&lt;/a> is the primary demonstrator for Jutul.jl: A fast and fully differentiable reservoir simulator with support for a wide range of meshes and physics. The package also has a Python wrapper: &lt;a class="link" href="https://github.com/sintefmath/PyJutulDarcy" target="_blank" rel="noopener"
+>pyjutuldarcy&lt;/a>.&lt;/p>
+&lt;h1 id="battmojl">BattMo.jl
+&lt;/h1>&lt;p>&lt;img src="https://moyner.github.io/software/battmologo_text.png"
+width="1643"
+height="613"
+srcset="https://moyner.github.io/software/battmologo_text_hu_3fc430861c7d9dfb.png 480w, https://moyner.github.io/software/battmologo_text_hu_228988ebc05dd432.png 1024w"
+loading="lazy"
+alt="BattMo logo"
+class="gallery-image"
+data-flex-grow="268"
+data-flex-basis="643px"
+>&lt;/p>
+&lt;p>BattMo.jl, built on top of Jutul.jl, is a Julia version of the BattMo toolbox. Supports fast simulation of pseudo X-dimensional (PXD) framework for the Doyle-Fuller-Newman model of lithium-ion battery cells on general meshes.&lt;/p>
+&lt;h1 id="multicomponentflashjl">MultiComponentFlash.jl
+&lt;/h1>&lt;p>&lt;img src="https://moyner.github.io/software/phase_diagram_simple.png"
+width="600"
+height="400"
+srcset="https://moyner.github.io/software/phase_diagram_simple_hu_85b6491e98d9730e.png 480w, https://moyner.github.io/software/phase_diagram_simple_hu_5af7d9d3475d0e0.png 1024w"
+loading="lazy"
+alt="Phase diagram for a methane, n-decane and carbon dioxide mixture"
+class="gallery-image"
+data-flex-grow="150"
+data-flex-basis="360px"
+>&lt;/p>
+&lt;p>&lt;a class="link" href="https://github.com/moyner/MultiComponentFlash.jl" target="_blank" rel="noopener"
+>MultiComponentFlash.jl&lt;/a> implements several equations of state for multicomponent vapor-liquid equilibrium, also called flash, for mixtures. These can be used to determine vapor fractions, molar partition between the phases and predict properties such as density and volume.&lt;/p>
+&lt;h1 id="geoenergyiojl">GeoEnergyIO.jl
+&lt;/h1>&lt;p>&lt;img src="https://moyner.github.io/software/cpmesh.jpg"
+width="800"
+height="707"
+srcset="https://moyner.github.io/software/cpmesh_hu_34fa775d701a7fd6.jpg 480w, https://moyner.github.io/software/cpmesh_hu_2c23c7c07cadf82a.jpg 1024w"
+loading="lazy"
+alt="Example of a generated and processed corner-point mesh"
+class="gallery-image"
+data-flex-grow="113"
+data-flex-basis="271px"
+>&lt;/p>
+&lt;p>&lt;a class="link" href="https://github.com/sintefmath/GeoEnergyIO.jl" target="_blank" rel="noopener"
+>GeoEnergyIO.jl&lt;/a> implements parsing of input formats from GeoEnergy applications (corner-point/GRDECL meshes, simulation input files and so on) as well as support for writing output in industry standard formats.&lt;/p>
+&lt;h1 id="spe11-visualizer">SPE11 visualizer
+&lt;/h1>&lt;div class="video-wrapper">
+&lt;video
+controls
+src="opm4b.mp4"
+>
+&lt;p>
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="opm4b.mp4">link to the video&lt;/a> instead.
+&lt;/p>
+&lt;/video>
+&lt;/div>
+&lt;p>The &lt;a class="link" href="https://github.com/moyner/CSP11Visualizer.jl/" target="_blank" rel="noopener"
+>CSP11Visualizer.jl&lt;/a> is used to generate the &lt;a class="link" href="https://moyner.github.io/SPE11-plot-test-deploy/index.html" target="_blank" rel="noopener"
+>static result website&lt;/a> for the &lt;a class="link" href="https://spe.org/en/csp/spe11/" target="_blank" rel="noopener"
+>11th SPE Comparative Solutions Project on CO2 storage&lt;/a>.&lt;/p></description></item><item><title>Search</title><link>https://moyner.github.io/search/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://moyner.github.io/search/</guid><description/></item></channel></rss>
