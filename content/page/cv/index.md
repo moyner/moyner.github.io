@@ -22,9 +22,7 @@ Welcome to the professional webpage of Olav Møyner. I'm a senior research scien
 - Numerical simulation of batteries
 - Discretizations for unstructured meshes (high-order and consistent schemes)
 
-## CV
-
-### Work experience
+## Work experience
 
 | Start | End   | Title                        | Institution      |
 |-------|-------|------------------------------|------------------|
@@ -33,7 +31,7 @@ Welcome to the professional webpage of Olav Møyner. I'm a senior research scien
 | 2017  | 2020  | Post. Doc. (VISTA program)   | NTNU             |
 | 2012  | 2016  | Scientific Software Developer| SINTEF ICT       |
 
-### Education & academic visits
+## Education & academic visits
 
 | Start | End   | Title                                                       | Institution |
 |-------|-------|-------------------------------------------------------------|-------------|
@@ -42,15 +40,15 @@ Welcome to the professional webpage of Olav Møyner. I'm a senior research scien
 | 2015  | 2016  | Visiting student researcher                                 | Stanford    |
 | 2007  | 2012  | M.Sc. / Siv.Ing. Physics and Mathematics                | NTNU        |
 
-### Awards
+## Awards
 
-#### SIAM GS Early career prize
+### SIAM GS Early career prize
 
 Awarded the 2019 [Society for Industrial and Applied Mathematics (SIAM) Geosciences Activity Group Early Career Prize](https://siam-web.useast01.umbraco.io/publications/siam-news/articles/april-prize-spotlight-omar-ghattas-and-olav-m248yner/).
 
 Prize citation: *The SIAM Activity Group on Geosciences (SIAG/GS) awards the SIAG/GS Early Career Prize to an individual in their early career for distinguished research contributions to the solution of mathematical and computational problems in the geosciences published in the three calendar years prior to the award year. The award recognizes Møyner for his elegant and insightful contributions to theory, algorithms, and software for multiscale porous flow simulation, and for his exceptional scholarly productivity and impact on practice.*
 
-#### Dimitris N. Chorafas prize for best PhD thesis at NTNU
+### Dimitris N. Chorafas prize for best PhD thesis at NTNU
 
 Awarded the 2016 [Dimitris N. Chorafas prize](https://www.weizmann.ac.il/wsos/about/dimitris-n-chorafas-prize/about-foundation-and-prize) given to a single PhD thesis at NTNU each year.
 
