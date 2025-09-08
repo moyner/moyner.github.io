@@ -54,7 +54,7 @@ We also had the issue of *what* code was to be used. We have three open source r
 We considered working directly on the industry standard .DATA files, as all three codes can set up models this way, but these files are both enormously complex, and are limited to the model setup as analysis is usually done in another language or GUI anyway. We selected JutulDarcy.jl for two reasons:
 
 1. [JutulDarcy.jl](https://github.com/sintefmath/JutulDarcy.jl) is easy to call from within an agent framework, since Julia is pretty easy to both install and call in a virtual machine.
-2. [MRST](https://github.com/SINTEF-AppliedCompSci/MRST) has a large number of modules that have been written over the last 15 years, with code styles, interfaces and documentation that varies from module to module. Although the wide feature set is very valuable to researchers, it is less useful to a LLM, which has a limited context window.
+2. [MRST](https://github.com/SINTEF-AppliedCompSci/MRST) has a large number of modules that have been written over the last 15 years, with code styles, interfaces and documentation that varies from module to module. This wide feature set is very valuable to researchers, but the magnitude means that it is less useful to a LLM, which has a limited context window and has a hard time with a non-unified coding style across modules.
 
 ### Software stack
 
@@ -112,13 +112,13 @@ The experience from MRST and JutulDarcy.jl usage is that typical users go straig
 
 ### Surprise 1: The negative well radius
 
-Although LLMs can often produce a lot of garbage, there are moments when they appear to be magic. One such instance happened during testing, when Kjetil had made a standardized prompt for testing different models, asking the model to set up a quarter-five-spot oil-water injection case on the unit square with 10 by 10 cells. This is a typical "hello world" reservoir simulation, if it were not for the fact that the domain is the unit square. If the mesh has unit length discretized by 10 cells, each cell is 0.1 meters wide, which is very small. In fact, it is smaller than the default diameter of the well in that grid block. This fact leads to a negative Peaceman factor - a standard analytical expression for the connection factor between a large grid block and the well inside it - and an error will occur.
+LLMs can often produce a lot of garbage code when given free reign, however, there are moments when they appear to be magic. One such instance happened during testing, when Kjetil had made a standardized prompt for testing different models, asking the model to set up a quarter-five-spot oil-water injection case on the unit square with 10 by 10 cells. This is a typical "hello world" reservoir simulation, if it were not for the fact that the domain is the unit square. If the mesh has unit length discretized by 10 cells, each cell is 0.1 meters wide, which is very small. In fact, it is smaller than the default diameter of the well in that grid block. This fact leads to a negative Peaceman factor - a standard analytical expression for the connection factor between a large grid block and the well inside it - and an error will occur.
 
 The surprise? The LLM quickly explains exactly how this occurs and how to fix it by hinting that the size of the domain is not realistic. Somewhere in all the model weights there are some digested parts of classical reservoir simulation texts, and the retrieval into the right context feels like magic (I have a lot of old e-mails from students asking about the negative radius).
 
 ### Surprise 2: MPI-programming for agents
 
-During user testing, one of my colleagues asked the agent to convert an existing simulation script into a MPI (distributed memory parallel) run. The agent managed to read the documentation, set up an environment with the required packages and modify the script in exactly the right places. It also set up a bash script to launch Julia with the right number of processes, pointing to the correct MPI binary. Although this is documented in the [JutulDarcy.jl documentation on parallelism](https://sintefmath.github.io/JutulDarcy.jl/dev/man/advanced/mpi), this left me very impressed.
+During user testing, one of my colleagues asked the agent to convert an existing simulation script into a MPI (distributed memory parallel) run. The agent managed to read the documentation, set up an environment with the required packages and modify the script in exactly the right places. It also set up a bash script to launch Julia with the right number of processes, pointing to the correct MPI binary. While this is documented in the [JutulDarcy.jl documentation on parallelism](https://sintefmath.github.io/JutulDarcy.jl/dev/man/advanced/mpi), the surgical modification of a user-provided script left me very impressed.
 
 ## Recommendations & conclusions
 
