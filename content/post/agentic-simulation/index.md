@@ -48,10 +48,14 @@ We considered working directly on the industry standard .DATA files, as all thre
 1. JutulDarcy.jl is easy to call from within an agent framework, since Julia is pretty easy to both install and call in a virtual machine.
 2. MRST has a large number of modules that have been written over the last 15 years, with code styles, interfaces and documentation that varies from module to module. Although the wide feature set is very valuable to researchers, it is less useful to a LLM, which has a limited context window.
 
+### Architecture
 
+After a bit of testing with smaller tools (like LLMCall.jl), we ended up using [LangChain](https://github.com/langchain-ai/langchain) as the framework. Elling made two front-ends: One that is a terminal
 
-
+The [code is available on GitHub](https://github.com/ellingsvee/JutulGPT) for those who want to dig into the details.
 
 ## Notes
 
-Locally hosted LLMs
+- Locally hosted LLMs?
+- Should you build your own agent setup? Maybe not. Example from Jakob
+- MPI
