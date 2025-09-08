@@ -1,5 +1,5 @@
 ---
-title: JutulGPT -- Agent-based reservoir simulation with JutulDarcy.jl
+title: JutulGPT - Agent-based reservoir simulation with JutulDarcy.jl
 description: Using a agentic workflow to set up complex simulation models
 slug: agentic-simulation
 date: 2025-09-08
