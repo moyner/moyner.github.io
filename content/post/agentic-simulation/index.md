@@ -58,4 +58,6 @@ The [code is available on GitHub](https://github.com/ellingsvee/JutulGPT) for th
 
 - Locally hosted LLMs?
 - Should you build your own agent setup? Maybe not. Example from Jakob
-- MPI
+- MPI test by Atgeirr
+- Unitful usage
+- Unit square and Peaceman formula error for negative radius
