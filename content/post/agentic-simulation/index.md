@@ -75,8 +75,7 @@ An agent is defined by the available tools. Here is a brief rundown of the most 
 - `grep_search`: Perform a text search in the documentation, returning a list of matches. The agent can then read the files containing the matches.
 - `retrieve_function_documentation`: Get the docstring of a function, using the Julia `@doc` macro.
 - `retrieve_examples`: Performs a semantic search to find relevant JutulDarcy examples stored in a
-vector database. Full examples are embedded, which helps generate code for complete simu-
-lations.
+vector database. Full examples are embedded, which helps generate code for complete simulations.
 
 #### Code execution tools
 
