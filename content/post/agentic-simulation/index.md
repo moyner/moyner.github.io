@@ -18,7 +18,7 @@ There is a fair bit of hype around large language model (LLM) agents at the mome
 
 ![Conceptual flowchart of how a simple agent can chain different tools to produce output - by Elling Svee](agent.png)
 
-At the Applied Computational Science group, we work extensively with numerical simulation of physical processes. We are developing open source software for reservoir simulation (e.g. MRST, OPM Flow and JutulDarcy.jl) as well as software for battery simulation and many other applications. In this post, we will limit the discussion to reservoir simulation, but most of the lessions apply to other types of modelling as well.
+At the [Applied Computational Science group](https://www.sintef.no/en/digital/departments/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/), we work extensively with numerical simulation of physical processes. We are developing open source software for reservoir simulation (e.g. [MRST](https://github.com/SINTEF-AppliedCompSci/MRST), [OPM Flow](https://opm-project.org/) and [JutulDarcy](https://github.com/sintefmath/JutulDarcy.jl).jl) as well as software for battery simulation and many other applications. In this post, we will limit the discussion to reservoir simulation, but most of the lessions apply to other types of modelling as well.
 
 We are interested in exploring how agents can be used to set up and interact with complex simulation models, examplified by a reservoir simulator. We can break down a basic reservoir simulation workflow into four steps:
 
