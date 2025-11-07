@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>JutulDarcy on Olav Møyner</title><link>https://moyner.github.io/categories/jutuldarcy/</link><description>Recent content in JutulDarcy on Olav Møyner</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Mon, 08 Sep 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://moyner.github.io/categories/jutuldarcy/index.xml" rel="self" type="application/rss+xml"/><item><title>JutulGPT - Agent-based reservoir simulation with JutulDarcy.jl</title><link>https://moyner.github.io/p/agentic-simulation/</link><pubDate>Mon, 08 Sep 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/agentic-simulation/</guid><description>&lt;img src="https://moyner.github.io/p/agentic-simulation/agent.png" alt="Featured image of post JutulGPT - Agent-based reservoir simulation with JutulDarcy.jl" /&gt;&lt;h2 id="motivation"&gt;Motivation
+&lt;/h2&gt;&lt;p&gt;&lt;em&gt;This blog post is based on work together with Elling Svee (who did most of the coding!), Knut-Andreas Lie, Kjetil Lye Olsen and Jakob Torben. &lt;a class="link" href="https://github.com/ellingsvee/JutulGPT" target="_blank" rel="noopener"
+&gt;code is available on GitHub&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;There is a fair bit of hype around large language model (LLM) agents at the moment, and discussions about what they can be used for. LLM-based agents are, in the broadest sense, essentially LLMs that are given a set of tools that can be used to perform tasks. Tools are typically a function call together with metadata (description of usage, purpose, etc) and allows a LLM program to perform tasks by estimating what the appropriate tool should be whenever a text response is insufficient.&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://moyner.github.io/p/agentic-simulation/agent.png"
+width="1108"
+height="399"
+srcset="https://moyner.github.io/p/agentic-simulation/agent_hu_c81b5b1c5b4deeee.png 480w, https://moyner.github.io/p/agentic-simulation/agent_hu_34debf50892f60a9.png 1024w"
+loading="lazy"
+alt="Conceptual flowchart of how a simple agent can chain different tools to produce output - by Elling Svee"
+class="gallery-image"
+data-flex-grow="277"
+data-flex-basis="666px"
+&gt;&lt;/p&gt;
+&lt;p&gt;At the &lt;a class="link" href="https://www.sintef.no/en/digital/departments/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/" target="_blank" rel="noopener"
+&gt;Applied Computational Science group&lt;/a&gt;, we work extensively with numerical simulation of physical processes. We are developing open source software for reservoir simulation (e.g. &lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+&gt;MRST&lt;/a&gt;, &lt;a class="link" href="https://opm-project.org/" target="_blank" rel="noopener"
+&gt;OPM Flow&lt;/a&gt; and &lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy&lt;/a&gt;.jl) as well as software for battery simulation and many other applications. In this post, we will limit the discussion to reservoir simulation, but most of the lessions apply to other types of modelling as well.&lt;/p&gt;
+&lt;p&gt;We are interested in exploring how agents can be used to set up and interact with complex simulation models, examplified by a reservoir simulator. We can break down a basic reservoir simulation workflow into four steps:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Define the model itself: Setting up a mesh, populating it with static properties (e.g. permeability/porosity), defining a fluid model and setting up wells, aquifers and other types of boundary conditions.&lt;/li&gt;
+&lt;li&gt;Set up a scenario to simulate: Pick operating controls/limits for the wells, time-steps to solve before simulating with the approprioate numerical tolerances, linear solver and solution strategy.&lt;/li&gt;
+&lt;li&gt;Perform analysis on the results, for example by computing the total thermal energy produced over a given number of years, examining the amount of CO2 stored in a CCS model, and so on.&lt;/li&gt;
+&lt;li&gt;Based on the analysis and goal, go back and redo steps 1-3 to improve the setup by introducing additional features, increasing grid resolution, adding tracers, moving wells, etc.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Reservoir simulators are complex pieces of software, and iterating between these four steps requires detailed knowledge of:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Reservoir engineering: &lt;em&gt;What physical process am I modelling?&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;Reservoir simulation: &lt;em&gt;What is the right choice of physics and resolution to capture the process?&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;Specific software know-how: &lt;em&gt;How do I make the available software do what I want? What are the limitations? How do I transfer data between applications?&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Each topic can be a daunting field of study in itself, so there exists a substantial challenge when it comes to making these modelling workflows accessible, especially for experts who want to test a new code for an existing application. This workflow sketch is also intentionally a bit simplistic, and most experienced reservoir simulation readers will spot some missing details (where are the ensembles? What about seismic interpretation? Where do you get the fluid data? What method do you use for populating the properties?).&lt;/p&gt;
+&lt;p&gt;I have personally no expectation that LLMs are going to be replacing &amp;ldquo;PhD level intelligence&amp;rdquo; any time soon - but they seem to have potential as a research partner that can perform time-consuming tasks and condense information from documentation and technical sources very quickly. The goal is not to stop writing code, but to spend the time on the code that really matters. For this reason, we have an internal activity targeted towards use of LLMs with simulators. The goal is to allow a LLM to help with setting up simulations, looking up documentation and performing task-specific coding in steps 1 to 4 above.&lt;/p&gt;
+&lt;p&gt;For more information on the high level goals of this activity, have a look at the SINTEF page on &lt;a class="link" href="https://www.sintef.no/en/digital/departments/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/discussing-with-your-simulator/" target="_blank" rel="noopener"
+&gt;Discussing with your simulator&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id="building-an-agent-for-reservoir-simulation"&gt;Building an agent for reservoir simulation
+&lt;/h2&gt;&lt;p&gt;The best way to get started with technology is to build something, so this year we allocated one of our many talented summer student towards building a prototype agent for reservoir simulation. Up front, we knew that two months were unlikely to build the agents of our dreams, so the scope was initially limited to steps 1/2, i.e. setting up simulation models rather than analysis of the results.&lt;/p&gt;
+&lt;h3 id="picking-a-code"&gt;Picking a code
+&lt;/h3&gt;&lt;p&gt;We also had the issue of &lt;em&gt;what&lt;/em&gt; code was to be used. We have three open source reservoir simulators that were candidates:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+&gt;MRST&lt;/a&gt; is a MATLAB-based toolbox for reservoir simulation and uses scripts to set up models, and has been around for a long time with a large number of different modules&lt;/li&gt;
+&lt;li&gt;&lt;a class="link" href="https://opm-project.org/" target="_blank" rel="noopener"
+&gt;OPM Flow&lt;/a&gt; is a C++ based reservoir simulator that is run by industry standard input files&lt;/li&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy.jl&lt;/a&gt; is a Julia-based reservoir simulator that also uses scripts as the primary setup&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;We considered working directly on the industry standard .DATA files, as all three codes can set up models this way, but these files are both enormously complex, and are limited to the model setup as analysis is usually done in another language or GUI anyway. We selected JutulDarcy.jl for two reasons:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy.jl&lt;/a&gt; is easy to call from within an agent framework, since Julia is pretty easy to both install and call in a virtual machine.&lt;/li&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+&gt;MRST&lt;/a&gt; has a large number of modules that have been written over the last 15 years, with code styles, interfaces and documentation that varies from module to module. This wide feature set is very valuable to researchers, but the magnitude means that it is less useful to a LLM, which has a limited context window and has a hard time with a non-unified coding style across modules.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id="software-stack"&gt;Software stack
+&lt;/h3&gt;&lt;p&gt;After a bit of testing with smaller tools (like &lt;a class="link" href="https://github.com/svilupp/PromptingTools.jl" target="_blank" rel="noopener"
+&gt;PromptingTools.jl&lt;/a&gt;), we ended up using &lt;a class="link" href="https://github.com/langchain-ai/langchain" target="_blank" rel="noopener"
+&gt;LangChain&lt;/a&gt; as the framework. We picked LangChain since it seemed to be fairly mature, featured and could easily use locally hosted LLMs.&lt;/p&gt;
+&lt;p&gt;The &lt;a class="link" href="https://github.com/ellingsvee/JutulGPT" target="_blank" rel="noopener"
+&gt;code is available on GitHub&lt;/a&gt; for those who want to dig into the details.&lt;/p&gt;
+&lt;p&gt;Elling has made two interfaces for JutulGPT: A &lt;a class="link" href="https://github.com/ellingsvee/JutulGPT-GUI" target="_blank" rel="noopener"
+&gt;chat-based frontend&lt;/a&gt; based on the &lt;a class="link" href="https://github.com/langchain-ai/agent-chat-ui" target="_blank" rel="noopener"
+&gt;LangGraph Agent Chat UI&lt;/a&gt; that should be familiar if you have used e.g. ChatGPT, and a dedicated command line interface (CLI). The CLI is recommended if you are familiar with programming.&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://moyner.github.io/p/agentic-simulation/jutulgpt_cli.png"
+width="3456"
+height="2159"
+srcset="https://moyner.github.io/p/agentic-simulation/jutulgpt_cli_hu_d622f11ef5a825eb.png 480w, https://moyner.github.io/p/agentic-simulation/jutulgpt_cli_hu_78a74d39b5d2fd7d.png 1024w"
+loading="lazy"
+alt="Example of the command line interface (CLI)"
+class="gallery-image"
+data-flex-grow="160"
+data-flex-basis="384px"
+&gt; &lt;img src="https://moyner.github.io/p/agentic-simulation/jutulgpt_web.png"
+width="917"
+height="921"
+srcset="https://moyner.github.io/p/agentic-simulation/jutulgpt_web_hu_c9fc53c4b15a6367.png 480w, https://moyner.github.io/p/agentic-simulation/jutulgpt_web_hu_cd4595aebb458637.png 1024w"
+loading="lazy"
+alt="Example of the web/chat-based interface"
+class="gallery-image"
+data-flex-grow="99"
+data-flex-basis="238px"
+&gt;&lt;/p&gt;
+&lt;h3 id="tools"&gt;Tools
+&lt;/h3&gt;&lt;p&gt;An agent is defined by the available tools. Here is a brief rundown of the most important tools that Elling implemented.&lt;/p&gt;
+&lt;h4 id="retrieval-tools"&gt;Retrieval tools
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;grep_search&lt;/code&gt;: Perform a text search in the documentation, returning a list of matches. The agent can then read the files containing the matches.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;retrieve_function_documentation&lt;/code&gt;: Get the docstring of a function, using the Julia &lt;code&gt;@doc&lt;/code&gt; macro.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;retrieve_examples&lt;/code&gt;: Performs a semantic search to find relevant JutulDarcy examples stored in a
+vector database. Full examples are embedded, which helps generate code for complete simulations.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id="code-execution-tools"&gt;Code execution tools
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;run_linter&lt;/code&gt;: Run static analysis on generated code, verifying if it is valid Julia code that calls existing functions (but does not guarantee that the code actually runs).&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;run_julia_code&lt;/code&gt;: Run the code and return any error messages.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;execute_terminal_command&lt;/code&gt;: Exactly what it says on the tin.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In addition, there are a set of tools for reading/writing to disk and accessing the file system.&lt;/p&gt;
+&lt;h3 id="human-in-the-loop"&gt;Human-in-the-loop
+&lt;/h3&gt;&lt;p&gt;LLMs, especially those that can run locally, often make mistakes. Elling made a choice to include an optional &amp;ldquo;human-in-the-loop&amp;rdquo; feature. I think his report put it quite nicely, so I am just going to quote him directly:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Providing the model with more tools can lead to more complex behavior. This often results in the model acting more autonomously, which can be both an advantage and a challenge. Smaller language models in particular tend to struggle with complex tasks. In my experience, they sometimes choose the wrong tools, get stuck on minor errors, or generate code that does not meet the user’s requirements. One way to address these issues is to include human feedback in the agent’s decision-making process, a method commonly referred to as human-
+in-the-loop (HITL). This approach allows users to provide input and corrections, ensuring that
+the agent’s actions align with their expertise.&lt;/p&gt;
+&lt;p&gt;I have implemented HITL-interactions in the workflow and in many of the available tools. For example, when the agent retrieves information from the JutulDarcy documentation or examples, the user can review and filter the retrieved content. When the agent generates code based on user requirements, it presents the code to the user for review before execution. This gives the user an opportunity to make manual adjustments or suggest improvements.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id="experiences"&gt;Experiences
+&lt;/h2&gt;&lt;h3 id="general"&gt;General
+&lt;/h3&gt;&lt;p&gt;The first exploratory attempts used locally hosted LLM models together with a &amp;ldquo;one-shot&amp;rdquo; approach to generate all the code requested by the user where the entire script would be set up from a single query. This was not very successful, both because the self-hosted models on a normal consumer grade GPU are quite limited, and because generating a full example in a single go does not seem productive. The agent will either retrieve an example unmodified from the examples, or it will hallucinate non-working code.&lt;/p&gt;
+&lt;p&gt;In addition, even with GPT4.1, the one-shot approach had a tendency to include code in nonsensical ways. One example is the treatment of units: Realistic reservoir simulation in JutulDarcy.jl means setting up realistic units, and we ship the code with conversion factors for the standard units used in petroleum engineering, which is readily documented by usage in the examples. However, this is a bit underdocumented in the structured documentation. As a consequence, the agent would often insert usage of the &lt;a class="link" href="https://github.com/JuliaPhysics/Unitful.jl" target="_blank" rel="noopener"
+&gt;Unitful.jl&lt;/a&gt; library in the code. Unitful is a library for sending &lt;em&gt;typed&lt;/em&gt; units through programs and does not contain any of the oil field units, leading to confusing errors.&lt;/p&gt;
+&lt;p&gt;The generated code became a lot better when the agent was allowed to iterate on the code before presenting it to the user, and make use of static linting. This removed a lot of the issues with hallucinated code, as the static linting will make it aware of what functions are actually available in the environment. This does burn more tokens, however, but it seems to be necessary to iterate to produce good results.&lt;/p&gt;
+&lt;h3 id="documentation-and-errors-what-does-the-agent-use"&gt;Documentation and errors: What does the agent use?
+&lt;/h3&gt;&lt;p&gt;The experience from MRST and JutulDarcy.jl usage is that typical users go straight for the examples and barely read the main documentation. We therefore focus on having long-form end-to-end example scripts (&lt;a class="link" href="https://sintefmath.github.io/JutulDarcy.jl/dev/examples/workflow/fully_differentiable_geothermal" target="_blank" rel="noopener"
+&gt;example&lt;/a&gt;) that can be a starting point for users. It was initially a bit surprising to see that these examples were not so useful for the LLM - the individual docstrings and text-based documentation were much more important to get good results. However, this does make sense, as the smaller parts are more digestable than a long example the LLM has a hard time to break down into chunks. We could perhaps make the examples more digestible by splitting it up. Similarly, writing high-quality error messages is worthwhile, as this is how the agent self-corrects during the write-evaluate loop.&lt;/p&gt;
+&lt;h3 id="surprise-1-the-negative-well-radius"&gt;Surprise 1: The negative well radius
+&lt;/h3&gt;&lt;p&gt;LLMs can often produce a lot of garbage code when given free reign, however, there are moments when they appear to be magic. One such instance happened during testing, when Kjetil had made a standardized prompt for testing different models, asking the model to set up a quarter-five-spot oil-water injection case on the unit square with 10 by 10 cells. This is a typical &amp;ldquo;hello world&amp;rdquo; reservoir simulation, if it were not for the fact that the domain is the unit square. If the mesh has unit length discretized by 10 cells, each cell is 0.1 meters wide, which is very small. In fact, it is smaller than the default diameter of the well in that grid block. This fact leads to a negative Peaceman factor - a standard analytical expression for the connection factor between a large grid block and the well inside it - and an error will occur.&lt;/p&gt;
+&lt;p&gt;The surprise? The LLM quickly explains exactly how this occurs and how to fix it by hinting that the size of the domain is not realistic. Somewhere in all the model weights there are some digested parts of classical reservoir simulation texts, and the retrieval into the right context feels like magic (I have a lot of old e-mails from students asking about the negative radius).&lt;/p&gt;
+&lt;h3 id="surprise-2-mpi-programming-for-agents"&gt;Surprise 2: MPI-programming for agents
+&lt;/h3&gt;&lt;p&gt;During user testing, one of my colleagues asked the agent to convert an existing simulation script into a MPI (distributed memory parallel) run. The agent managed to read the documentation, set up an environment with the required packages and modify the script in exactly the right places. It also set up a bash script to launch Julia with the right number of processes, pointing to the correct MPI binary. While this is documented in the &lt;a class="link" href="https://sintefmath.github.io/JutulDarcy.jl/dev/man/advanced/mpi" target="_blank" rel="noopener"
+&gt;JutulDarcy.jl documentation on parallelism&lt;/a&gt;, the surgical modification of a user-provided script left me very impressed.&lt;/p&gt;
+&lt;h2 id="recommendations--conclusions"&gt;Recommendations &amp;amp; conclusions
+&lt;/h2&gt;&lt;p&gt;Although they are far from perfect programmers, agents seem to have significant potential for working with complex simulation codes. Here are a few of our (speculative) recommendations if you want to attempt something similar:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Improve your docstrings and error messages as much as possible, and make these available to the agent. Make error messages for nonsensical inputs as early as possible rather than during the final simulation call (for example: Negative permeability is an error when input - even if it is a valid floating point number).&lt;/li&gt;
+&lt;li&gt;Documentation should be smaller digestible chunks for the best results.&lt;/li&gt;
+&lt;li&gt;Static analysis of code can save a lot of tokens and frustration&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Even as the project was limited to only two months, we believe the resulting code can be quite useful, both as a novel tool for learning how to use JutulDarcy for reservoir simulation, and how to build an agent workflow for a simulation code. We encourage anyone who is interested to dig through or even run the code. The code is released under a permissive MIT license, just like JutulDarcy.jl itself.&lt;/p&gt;
+&lt;h3 id="links-to-source-code-and-other-material"&gt;Links to source code and other material
+&lt;/h3&gt;&lt;p&gt;&lt;a class="link" href="https://github.com/ellingsvee/JutulGPT" target="_blank" rel="noopener"
+&gt;Source&lt;/a&gt;
+&lt;a class="link" href="https://github.com/ellingsvee/JutulGPT/blob/main/src/jutulgpt/prompts.py" target="_blank" rel="noopener"
+&gt;Prompts&lt;/a&gt;
+&lt;a class="link" href="main.pdf" &gt;Additional details are found in Elling&amp;rsquo;s report.&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;If you do want to run the code: Please note that as the code can in principle execute terminal commands, we recommend that you carefully read the outputs before executing, ideally in some sort of VM.&lt;/p&gt;</description></item><item><title>Running a reservoir simulation on my phone</title><link>https://moyner.github.io/p/phone-simulation/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/phone-simulation/</guid><description>&lt;img src="https://moyner.github.io/p/phone-simulation/header.png" alt="Featured image of post Running a reservoir simulation on my phone" /&gt;&lt;p&gt;The trend has been to move compute heavy workloads over into the cloud, but today I did the opposite and put it in my pocket! Using the new &lt;a class="link" href="https://www.androidpolice.com/android-15-linux-terminal-app/" target="_blank" rel="noopener"
+&gt;Android 16 Linux terminal&lt;/a&gt; on my Pixel, I’m running a reservoir simulation on my phone 😎&lt;/p&gt;
+&lt;p&gt;The Linux terminal is a proper Debian setup, so I naturally installed julia and JutulDarcy to test the computational performance. The setup was fairly straightforward: Install &lt;a class="link" href="https://github.com/JuliaLang/juliaup" target="_blank" rel="noopener"
+&gt;juliaup&lt;/a&gt; and add the latest release. I then added JutulDarcy and HYPRE to the default environment. The precompilation crashed towards the end of the setup - perhaps due to the screen going to sleep - but once I restarted Julia, everything ran nicely.&lt;/p&gt;
+&lt;p&gt;On a small SPE9 case, it is surprisingly performant with a runtime comparable to that of a laptop. This case only has 9000 cells and ~18k degrees of freedom, so I also ran the larger OLYMPUS 1 case (~200k cells, ~400k degrees of freedom), runtime was roughly 2x that of my laptop when both devices were using a single thread.&lt;/p&gt;
+&lt;p&gt;I don’t foresee that I’m going to switch to my phone for running simulations any time soon, but it is impressive to see how powerful phone CPUs have gotten. ARM support is also pretty good in Julia, probably a side effect of macOS support that now also uses ARM. If you want to get reasonable performance you will have to keep the screen on and the Linux app open - it appears that the Android process manager heavily priortizes the active application.&lt;/p&gt;
+&lt;div class="video-wrapper"&gt;
+&lt;video
+controls
+src="pixel-run.mp4"
+&gt;
+&lt;p&gt;
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="pixel-run.mp4"&gt;link to the video&lt;/a&gt; instead.
+&lt;/p&gt;
+&lt;/video&gt;
+&lt;/div&gt;</description></item></channel></rss>

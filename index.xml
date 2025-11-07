@@ -1,0 +1,693 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Olav Møyner</title><link>https://moyner.github.io/</link><description>Recent content on Olav Møyner</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Mon, 08 Sep 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://moyner.github.io/index.xml" rel="self" type="application/rss+xml"/><item><title>JutulGPT - Agent-based reservoir simulation with JutulDarcy.jl</title><link>https://moyner.github.io/p/agentic-simulation/</link><pubDate>Mon, 08 Sep 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/agentic-simulation/</guid><description>&lt;img src="https://moyner.github.io/p/agentic-simulation/agent.png" alt="Featured image of post JutulGPT - Agent-based reservoir simulation with JutulDarcy.jl" /&gt;&lt;h2 id="motivation"&gt;Motivation
+&lt;/h2&gt;&lt;p&gt;&lt;em&gt;This blog post is based on work together with Elling Svee (who did most of the coding!), Knut-Andreas Lie, Kjetil Lye Olsen and Jakob Torben. &lt;a class="link" href="https://github.com/ellingsvee/JutulGPT" target="_blank" rel="noopener"
+&gt;code is available on GitHub&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;There is a fair bit of hype around large language model (LLM) agents at the moment, and discussions about what they can be used for. LLM-based agents are, in the broadest sense, essentially LLMs that are given a set of tools that can be used to perform tasks. Tools are typically a function call together with metadata (description of usage, purpose, etc) and allows a LLM program to perform tasks by estimating what the appropriate tool should be whenever a text response is insufficient.&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://moyner.github.io/p/agentic-simulation/agent.png"
+width="1108"
+height="399"
+srcset="https://moyner.github.io/p/agentic-simulation/agent_hu_c81b5b1c5b4deeee.png 480w, https://moyner.github.io/p/agentic-simulation/agent_hu_34debf50892f60a9.png 1024w"
+loading="lazy"
+alt="Conceptual flowchart of how a simple agent can chain different tools to produce output - by Elling Svee"
+class="gallery-image"
+data-flex-grow="277"
+data-flex-basis="666px"
+&gt;&lt;/p&gt;
+&lt;p&gt;At the &lt;a class="link" href="https://www.sintef.no/en/digital/departments/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/" target="_blank" rel="noopener"
+&gt;Applied Computational Science group&lt;/a&gt;, we work extensively with numerical simulation of physical processes. We are developing open source software for reservoir simulation (e.g. &lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+&gt;MRST&lt;/a&gt;, &lt;a class="link" href="https://opm-project.org/" target="_blank" rel="noopener"
+&gt;OPM Flow&lt;/a&gt; and &lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy&lt;/a&gt;.jl) as well as software for battery simulation and many other applications. In this post, we will limit the discussion to reservoir simulation, but most of the lessions apply to other types of modelling as well.&lt;/p&gt;
+&lt;p&gt;We are interested in exploring how agents can be used to set up and interact with complex simulation models, examplified by a reservoir simulator. We can break down a basic reservoir simulation workflow into four steps:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Define the model itself: Setting up a mesh, populating it with static properties (e.g. permeability/porosity), defining a fluid model and setting up wells, aquifers and other types of boundary conditions.&lt;/li&gt;
+&lt;li&gt;Set up a scenario to simulate: Pick operating controls/limits for the wells, time-steps to solve before simulating with the approprioate numerical tolerances, linear solver and solution strategy.&lt;/li&gt;
+&lt;li&gt;Perform analysis on the results, for example by computing the total thermal energy produced over a given number of years, examining the amount of CO2 stored in a CCS model, and so on.&lt;/li&gt;
+&lt;li&gt;Based on the analysis and goal, go back and redo steps 1-3 to improve the setup by introducing additional features, increasing grid resolution, adding tracers, moving wells, etc.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Reservoir simulators are complex pieces of software, and iterating between these four steps requires detailed knowledge of:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Reservoir engineering: &lt;em&gt;What physical process am I modelling?&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;Reservoir simulation: &lt;em&gt;What is the right choice of physics and resolution to capture the process?&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;Specific software know-how: &lt;em&gt;How do I make the available software do what I want? What are the limitations? How do I transfer data between applications?&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Each topic can be a daunting field of study in itself, so there exists a substantial challenge when it comes to making these modelling workflows accessible, especially for experts who want to test a new code for an existing application. This workflow sketch is also intentionally a bit simplistic, and most experienced reservoir simulation readers will spot some missing details (where are the ensembles? What about seismic interpretation? Where do you get the fluid data? What method do you use for populating the properties?).&lt;/p&gt;
+&lt;p&gt;I have personally no expectation that LLMs are going to be replacing &amp;ldquo;PhD level intelligence&amp;rdquo; any time soon - but they seem to have potential as a research partner that can perform time-consuming tasks and condense information from documentation and technical sources very quickly. The goal is not to stop writing code, but to spend the time on the code that really matters. For this reason, we have an internal activity targeted towards use of LLMs with simulators. The goal is to allow a LLM to help with setting up simulations, looking up documentation and performing task-specific coding in steps 1 to 4 above.&lt;/p&gt;
+&lt;p&gt;For more information on the high level goals of this activity, have a look at the SINTEF page on &lt;a class="link" href="https://www.sintef.no/en/digital/departments/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/discussing-with-your-simulator/" target="_blank" rel="noopener"
+&gt;Discussing with your simulator&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id="building-an-agent-for-reservoir-simulation"&gt;Building an agent for reservoir simulation
+&lt;/h2&gt;&lt;p&gt;The best way to get started with technology is to build something, so this year we allocated one of our many talented summer student towards building a prototype agent for reservoir simulation. Up front, we knew that two months were unlikely to build the agents of our dreams, so the scope was initially limited to steps 1/2, i.e. setting up simulation models rather than analysis of the results.&lt;/p&gt;
+&lt;h3 id="picking-a-code"&gt;Picking a code
+&lt;/h3&gt;&lt;p&gt;We also had the issue of &lt;em&gt;what&lt;/em&gt; code was to be used. We have three open source reservoir simulators that were candidates:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+&gt;MRST&lt;/a&gt; is a MATLAB-based toolbox for reservoir simulation and uses scripts to set up models, and has been around for a long time with a large number of different modules&lt;/li&gt;
+&lt;li&gt;&lt;a class="link" href="https://opm-project.org/" target="_blank" rel="noopener"
+&gt;OPM Flow&lt;/a&gt; is a C++ based reservoir simulator that is run by industry standard input files&lt;/li&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy.jl&lt;/a&gt; is a Julia-based reservoir simulator that also uses scripts as the primary setup&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;We considered working directly on the industry standard .DATA files, as all three codes can set up models this way, but these files are both enormously complex, and are limited to the model setup as analysis is usually done in another language or GUI anyway. We selected JutulDarcy.jl for two reasons:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy.jl&lt;/a&gt; is easy to call from within an agent framework, since Julia is pretty easy to both install and call in a virtual machine.&lt;/li&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+&gt;MRST&lt;/a&gt; has a large number of modules that have been written over the last 15 years, with code styles, interfaces and documentation that varies from module to module. This wide feature set is very valuable to researchers, but the magnitude means that it is less useful to a LLM, which has a limited context window and has a hard time with a non-unified coding style across modules.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id="software-stack"&gt;Software stack
+&lt;/h3&gt;&lt;p&gt;After a bit of testing with smaller tools (like &lt;a class="link" href="https://github.com/svilupp/PromptingTools.jl" target="_blank" rel="noopener"
+&gt;PromptingTools.jl&lt;/a&gt;), we ended up using &lt;a class="link" href="https://github.com/langchain-ai/langchain" target="_blank" rel="noopener"
+&gt;LangChain&lt;/a&gt; as the framework. We picked LangChain since it seemed to be fairly mature, featured and could easily use locally hosted LLMs.&lt;/p&gt;
+&lt;p&gt;The &lt;a class="link" href="https://github.com/ellingsvee/JutulGPT" target="_blank" rel="noopener"
+&gt;code is available on GitHub&lt;/a&gt; for those who want to dig into the details.&lt;/p&gt;
+&lt;p&gt;Elling has made two interfaces for JutulGPT: A &lt;a class="link" href="https://github.com/ellingsvee/JutulGPT-GUI" target="_blank" rel="noopener"
+&gt;chat-based frontend&lt;/a&gt; based on the &lt;a class="link" href="https://github.com/langchain-ai/agent-chat-ui" target="_blank" rel="noopener"
+&gt;LangGraph Agent Chat UI&lt;/a&gt; that should be familiar if you have used e.g. ChatGPT, and a dedicated command line interface (CLI). The CLI is recommended if you are familiar with programming.&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://moyner.github.io/p/agentic-simulation/jutulgpt_cli.png"
+width="3456"
+height="2159"
+srcset="https://moyner.github.io/p/agentic-simulation/jutulgpt_cli_hu_d622f11ef5a825eb.png 480w, https://moyner.github.io/p/agentic-simulation/jutulgpt_cli_hu_78a74d39b5d2fd7d.png 1024w"
+loading="lazy"
+alt="Example of the command line interface (CLI)"
+class="gallery-image"
+data-flex-grow="160"
+data-flex-basis="384px"
+&gt; &lt;img src="https://moyner.github.io/p/agentic-simulation/jutulgpt_web.png"
+width="917"
+height="921"
+srcset="https://moyner.github.io/p/agentic-simulation/jutulgpt_web_hu_c9fc53c4b15a6367.png 480w, https://moyner.github.io/p/agentic-simulation/jutulgpt_web_hu_cd4595aebb458637.png 1024w"
+loading="lazy"
+alt="Example of the web/chat-based interface"
+class="gallery-image"
+data-flex-grow="99"
+data-flex-basis="238px"
+&gt;&lt;/p&gt;
+&lt;h3 id="tools"&gt;Tools
+&lt;/h3&gt;&lt;p&gt;An agent is defined by the available tools. Here is a brief rundown of the most important tools that Elling implemented.&lt;/p&gt;
+&lt;h4 id="retrieval-tools"&gt;Retrieval tools
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;grep_search&lt;/code&gt;: Perform a text search in the documentation, returning a list of matches. The agent can then read the files containing the matches.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;retrieve_function_documentation&lt;/code&gt;: Get the docstring of a function, using the Julia &lt;code&gt;@doc&lt;/code&gt; macro.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;retrieve_examples&lt;/code&gt;: Performs a semantic search to find relevant JutulDarcy examples stored in a
+vector database. Full examples are embedded, which helps generate code for complete simulations.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id="code-execution-tools"&gt;Code execution tools
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;run_linter&lt;/code&gt;: Run static analysis on generated code, verifying if it is valid Julia code that calls existing functions (but does not guarantee that the code actually runs).&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;run_julia_code&lt;/code&gt;: Run the code and return any error messages.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;execute_terminal_command&lt;/code&gt;: Exactly what it says on the tin.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In addition, there are a set of tools for reading/writing to disk and accessing the file system.&lt;/p&gt;
+&lt;h3 id="human-in-the-loop"&gt;Human-in-the-loop
+&lt;/h3&gt;&lt;p&gt;LLMs, especially those that can run locally, often make mistakes. Elling made a choice to include an optional &amp;ldquo;human-in-the-loop&amp;rdquo; feature. I think his report put it quite nicely, so I am just going to quote him directly:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Providing the model with more tools can lead to more complex behavior. This often results in the model acting more autonomously, which can be both an advantage and a challenge. Smaller language models in particular tend to struggle with complex tasks. In my experience, they sometimes choose the wrong tools, get stuck on minor errors, or generate code that does not meet the user’s requirements. One way to address these issues is to include human feedback in the agent’s decision-making process, a method commonly referred to as human-
+in-the-loop (HITL). This approach allows users to provide input and corrections, ensuring that
+the agent’s actions align with their expertise.&lt;/p&gt;
+&lt;p&gt;I have implemented HITL-interactions in the workflow and in many of the available tools. For example, when the agent retrieves information from the JutulDarcy documentation or examples, the user can review and filter the retrieved content. When the agent generates code based on user requirements, it presents the code to the user for review before execution. This gives the user an opportunity to make manual adjustments or suggest improvements.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id="experiences"&gt;Experiences
+&lt;/h2&gt;&lt;h3 id="general"&gt;General
+&lt;/h3&gt;&lt;p&gt;The first exploratory attempts used locally hosted LLM models together with a &amp;ldquo;one-shot&amp;rdquo; approach to generate all the code requested by the user where the entire script would be set up from a single query. This was not very successful, both because the self-hosted models on a normal consumer grade GPU are quite limited, and because generating a full example in a single go does not seem productive. The agent will either retrieve an example unmodified from the examples, or it will hallucinate non-working code.&lt;/p&gt;
+&lt;p&gt;In addition, even with GPT4.1, the one-shot approach had a tendency to include code in nonsensical ways. One example is the treatment of units: Realistic reservoir simulation in JutulDarcy.jl means setting up realistic units, and we ship the code with conversion factors for the standard units used in petroleum engineering, which is readily documented by usage in the examples. However, this is a bit underdocumented in the structured documentation. As a consequence, the agent would often insert usage of the &lt;a class="link" href="https://github.com/JuliaPhysics/Unitful.jl" target="_blank" rel="noopener"
+&gt;Unitful.jl&lt;/a&gt; library in the code. Unitful is a library for sending &lt;em&gt;typed&lt;/em&gt; units through programs and does not contain any of the oil field units, leading to confusing errors.&lt;/p&gt;
+&lt;p&gt;The generated code became a lot better when the agent was allowed to iterate on the code before presenting it to the user, and make use of static linting. This removed a lot of the issues with hallucinated code, as the static linting will make it aware of what functions are actually available in the environment. This does burn more tokens, however, but it seems to be necessary to iterate to produce good results.&lt;/p&gt;
+&lt;h3 id="documentation-and-errors-what-does-the-agent-use"&gt;Documentation and errors: What does the agent use?
+&lt;/h3&gt;&lt;p&gt;The experience from MRST and JutulDarcy.jl usage is that typical users go straight for the examples and barely read the main documentation. We therefore focus on having long-form end-to-end example scripts (&lt;a class="link" href="https://sintefmath.github.io/JutulDarcy.jl/dev/examples/workflow/fully_differentiable_geothermal" target="_blank" rel="noopener"
+&gt;example&lt;/a&gt;) that can be a starting point for users. It was initially a bit surprising to see that these examples were not so useful for the LLM - the individual docstrings and text-based documentation were much more important to get good results. However, this does make sense, as the smaller parts are more digestable than a long example the LLM has a hard time to break down into chunks. We could perhaps make the examples more digestible by splitting it up. Similarly, writing high-quality error messages is worthwhile, as this is how the agent self-corrects during the write-evaluate loop.&lt;/p&gt;
+&lt;h3 id="surprise-1-the-negative-well-radius"&gt;Surprise 1: The negative well radius
+&lt;/h3&gt;&lt;p&gt;LLMs can often produce a lot of garbage code when given free reign, however, there are moments when they appear to be magic. One such instance happened during testing, when Kjetil had made a standardized prompt for testing different models, asking the model to set up a quarter-five-spot oil-water injection case on the unit square with 10 by 10 cells. This is a typical &amp;ldquo;hello world&amp;rdquo; reservoir simulation, if it were not for the fact that the domain is the unit square. If the mesh has unit length discretized by 10 cells, each cell is 0.1 meters wide, which is very small. In fact, it is smaller than the default diameter of the well in that grid block. This fact leads to a negative Peaceman factor - a standard analytical expression for the connection factor between a large grid block and the well inside it - and an error will occur.&lt;/p&gt;
+&lt;p&gt;The surprise? The LLM quickly explains exactly how this occurs and how to fix it by hinting that the size of the domain is not realistic. Somewhere in all the model weights there are some digested parts of classical reservoir simulation texts, and the retrieval into the right context feels like magic (I have a lot of old e-mails from students asking about the negative radius).&lt;/p&gt;
+&lt;h3 id="surprise-2-mpi-programming-for-agents"&gt;Surprise 2: MPI-programming for agents
+&lt;/h3&gt;&lt;p&gt;During user testing, one of my colleagues asked the agent to convert an existing simulation script into a MPI (distributed memory parallel) run. The agent managed to read the documentation, set up an environment with the required packages and modify the script in exactly the right places. It also set up a bash script to launch Julia with the right number of processes, pointing to the correct MPI binary. While this is documented in the &lt;a class="link" href="https://sintefmath.github.io/JutulDarcy.jl/dev/man/advanced/mpi" target="_blank" rel="noopener"
+&gt;JutulDarcy.jl documentation on parallelism&lt;/a&gt;, the surgical modification of a user-provided script left me very impressed.&lt;/p&gt;
+&lt;h2 id="recommendations--conclusions"&gt;Recommendations &amp;amp; conclusions
+&lt;/h2&gt;&lt;p&gt;Although they are far from perfect programmers, agents seem to have significant potential for working with complex simulation codes. Here are a few of our (speculative) recommendations if you want to attempt something similar:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Improve your docstrings and error messages as much as possible, and make these available to the agent. Make error messages for nonsensical inputs as early as possible rather than during the final simulation call (for example: Negative permeability is an error when input - even if it is a valid floating point number).&lt;/li&gt;
+&lt;li&gt;Documentation should be smaller digestible chunks for the best results.&lt;/li&gt;
+&lt;li&gt;Static analysis of code can save a lot of tokens and frustration&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Even as the project was limited to only two months, we believe the resulting code can be quite useful, both as a novel tool for learning how to use JutulDarcy for reservoir simulation, and how to build an agent workflow for a simulation code. We encourage anyone who is interested to dig through or even run the code. The code is released under a permissive MIT license, just like JutulDarcy.jl itself.&lt;/p&gt;
+&lt;h3 id="links-to-source-code-and-other-material"&gt;Links to source code and other material
+&lt;/h3&gt;&lt;p&gt;&lt;a class="link" href="https://github.com/ellingsvee/JutulGPT" target="_blank" rel="noopener"
+&gt;Source&lt;/a&gt;
+&lt;a class="link" href="https://github.com/ellingsvee/JutulGPT/blob/main/src/jutulgpt/prompts.py" target="_blank" rel="noopener"
+&gt;Prompts&lt;/a&gt;
+&lt;a class="link" href="main.pdf" &gt;Additional details are found in Elling&amp;rsquo;s report.&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;If you do want to run the code: Please note that as the code can in principle execute terminal commands, we recommend that you carefully read the outputs before executing, ideally in some sort of VM.&lt;/p&gt;</description></item><item><title>A first post</title><link>https://moyner.github.io/p/first-post/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/first-post/</guid><description>&lt;img src="https://moyner.github.io/p/first-post/m.png" alt="Featured image of post A first post" /&gt;&lt;p&gt;Welcome to my website. I have migrated to Hugo from Google Sites to make the website easier to update, and migrate if need be. In the future, posts about my research and work may appear here - or it may not. Stay tuned!&lt;/p&gt;</description></item><item><title>Running a reservoir simulation on my phone</title><link>https://moyner.github.io/p/phone-simulation/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/phone-simulation/</guid><description>&lt;img src="https://moyner.github.io/p/phone-simulation/header.png" alt="Featured image of post Running a reservoir simulation on my phone" /&gt;&lt;p&gt;The trend has been to move compute heavy workloads over into the cloud, but today I did the opposite and put it in my pocket! Using the new &lt;a class="link" href="https://www.androidpolice.com/android-15-linux-terminal-app/" target="_blank" rel="noopener"
+&gt;Android 16 Linux terminal&lt;/a&gt; on my Pixel, I’m running a reservoir simulation on my phone 😎&lt;/p&gt;
+&lt;p&gt;The Linux terminal is a proper Debian setup, so I naturally installed julia and JutulDarcy to test the computational performance. The setup was fairly straightforward: Install &lt;a class="link" href="https://github.com/JuliaLang/juliaup" target="_blank" rel="noopener"
+&gt;juliaup&lt;/a&gt; and add the latest release. I then added JutulDarcy and HYPRE to the default environment. The precompilation crashed towards the end of the setup - perhaps due to the screen going to sleep - but once I restarted Julia, everything ran nicely.&lt;/p&gt;
+&lt;p&gt;On a small SPE9 case, it is surprisingly performant with a runtime comparable to that of a laptop. This case only has 9000 cells and ~18k degrees of freedom, so I also ran the larger OLYMPUS 1 case (~200k cells, ~400k degrees of freedom), runtime was roughly 2x that of my laptop when both devices were using a single thread.&lt;/p&gt;
+&lt;p&gt;I don’t foresee that I’m going to switch to my phone for running simulations any time soon, but it is impressive to see how powerful phone CPUs have gotten. ARM support is also pretty good in Julia, probably a side effect of macOS support that now also uses ARM. If you want to get reasonable performance you will have to keep the screen on and the Linux app open - it appears that the Android process manager heavily priortizes the active application.&lt;/p&gt;
+&lt;div class="video-wrapper"&gt;
+&lt;video
+controls
+src="pixel-run.mp4"
+&gt;
+&lt;p&gt;
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="pixel-run.mp4"&gt;link to the video&lt;/a&gt; instead.
+&lt;/p&gt;
+&lt;/video&gt;
+&lt;/div&gt;</description></item><item><title>Archives</title><link>https://moyner.github.io/archives/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/archives/</guid><description/></item><item><title>CV</title><link>https://moyner.github.io/cv/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/cv/</guid><description>&lt;p&gt;Welcome to the professional webpage of Olav Møyner. I&amp;rsquo;m a senior research scientist in the &lt;a class="link" href="https://www.sintef.no/en/digital/departments-new/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/" target="_blank" rel="noopener"
+&gt;Applied Computational Sciences group&lt;/a&gt; at &lt;a class="link" href="https://www.sintef.no/sintef-digital/" target="_blank" rel="noopener"
+&gt;SINTEF Digital&lt;/a&gt;, a &lt;a class="link" href="https://www.sintef.no/en/sintef-group/this-is-sintef/" target="_blank" rel="noopener"
+&gt;not-for-profit independent research institute&lt;/a&gt; in Norway. I can most easily be reached at &lt;a class="link" href="mailto:mail@olavmoyner.com" &gt;mail@olavmoyner.com&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id="research-interests"&gt;Research interests
+&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Solution methods for coupled, nonlinear partial differential equations (PDEs)&lt;/li&gt;
+&lt;li&gt;Automatic differentiation and adjoint methods&lt;/li&gt;
+&lt;li&gt;Software design of industry grade simulators&lt;/li&gt;
+&lt;li&gt;Flow and transport in porous media, with applications in hydrocarbon recovery, carbon capture and sequestration, geothermal energy and groundwater flow&lt;/li&gt;
+&lt;li&gt;Numerical simulation of batteries&lt;/li&gt;
+&lt;li&gt;Discretizations for unstructured meshes (high-order and consistent schemes)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="work-experience"&gt;Work experience
+&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Start&lt;/th&gt;
+&lt;th&gt;End&lt;/th&gt;
+&lt;th&gt;Title&lt;/th&gt;
+&lt;th&gt;Institution&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;2022&lt;/td&gt;
+&lt;td&gt;&amp;ndash;&lt;/td&gt;
+&lt;td&gt;Senior Research Scientist&lt;/td&gt;
+&lt;td&gt;SINTEF Digital&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2016&lt;/td&gt;
+&lt;td&gt;2022&lt;/td&gt;
+&lt;td&gt;Research Scientist&lt;/td&gt;
+&lt;td&gt;SINTEF Digital&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2017&lt;/td&gt;
+&lt;td&gt;2020&lt;/td&gt;
+&lt;td&gt;Post. Doc. (VISTA program)&lt;/td&gt;
+&lt;td&gt;NTNU&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2012&lt;/td&gt;
+&lt;td&gt;2016&lt;/td&gt;
+&lt;td&gt;Scientific Software Developer&lt;/td&gt;
+&lt;td&gt;SINTEF ICT&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2 id="education--academic-visits"&gt;Education &amp;amp; academic visits
+&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Start&lt;/th&gt;
+&lt;th&gt;End&lt;/th&gt;
+&lt;th&gt;Title&lt;/th&gt;
+&lt;th&gt;Institution&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;2019&lt;/td&gt;
+&lt;td&gt;2019&lt;/td&gt;
+&lt;td&gt;Visting scholar, Stanford University&lt;/td&gt;
+&lt;td&gt;Stanford&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2013&lt;/td&gt;
+&lt;td&gt;2016&lt;/td&gt;
+&lt;td&gt;&lt;a class="link" href="https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2431831" target="_blank" rel="noopener"
+&gt;Ph.D. (Department of Mathematical Sciences)&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;NTNU&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2015&lt;/td&gt;
+&lt;td&gt;2016&lt;/td&gt;
+&lt;td&gt;Visiting student researcher&lt;/td&gt;
+&lt;td&gt;Stanford&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2007&lt;/td&gt;
+&lt;td&gt;2012&lt;/td&gt;
+&lt;td&gt;M.Sc. / Siv.Ing. Physics and Mathematics&lt;/td&gt;
+&lt;td&gt;NTNU&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2 id="awards"&gt;Awards
+&lt;/h2&gt;&lt;h3 id="siam-gs-early-career-prize"&gt;SIAM GS Early career prize
+&lt;/h3&gt;&lt;p&gt;Awarded the 2019 &lt;a class="link" href="https://siam-web.useast01.umbraco.io/publications/siam-news/articles/april-prize-spotlight-omar-ghattas-and-olav-m248yner/" target="_blank" rel="noopener"
+&gt;Society for Industrial and Applied Mathematics (SIAM) Geosciences Activity Group Early Career Prize&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Prize citation: &lt;em&gt;The SIAM Activity Group on Geosciences (SIAG/GS) awards the SIAG/GS Early Career Prize to an individual in their early career for distinguished research contributions to the solution of mathematical and computational problems in the geosciences published in the three calendar years prior to the award year. The award recognizes Møyner for his elegant and insightful contributions to theory, algorithms, and software for multiscale porous flow simulation, and for his exceptional scholarly productivity and impact on practice.&lt;/em&gt;&lt;/p&gt;
+&lt;h3 id="dimitris-n-chorafas-prize-for-best-phd-thesis-at-ntnu"&gt;Dimitris N. Chorafas prize for best PhD thesis at NTNU
+&lt;/h3&gt;&lt;p&gt;Awarded the 2016 &lt;a class="link" href="https://www.weizmann.ac.il/wsos/about/dimitris-n-chorafas-prize/about-foundation-and-prize" target="_blank" rel="noopener"
+&gt;Dimitris N. Chorafas prize&lt;/a&gt; given to a single PhD thesis at NTNU each year.&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;The Dimitris N. Chorafas Foundation awards scientific prizes for outstanding work in selected fields in the engineering sciences, medicine and the natural sciences. It rewards research characterized by its high potential for practical application and by the special significance attached to its aftermath. Every year, partner universities in Europe, North America and Asia evaluate the research work of their graduating doctorate students and propose the best for prizing.&lt;/em&gt;&lt;/p&gt;</description></item><item><title>Publications</title><link>https://moyner.github.io/publications/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/publications/</guid><description>&lt;p&gt;If you want access to any of the publications but are unable to do so because of paywalls, please contact me at &lt;a class="link" href="mailto:mail@olavmoyner.com" &gt;mail@olavmoyner.com&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id="preprints"&gt;Preprints
+&lt;/h2&gt;&lt;p&gt;No current preprints available.&lt;/p&gt;
+&lt;h2 id="journal-publications"&gt;Journal publications
+&lt;/h2&gt;&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;J. M. Nordbotten, M. A. Fernø, B. Flemisch, A. R. Kovscek, K.-A. Lie, J. W. Both, O. Møyner, T. H. Sandve, E. Ahusborde, S. Bauer, Z. Chen, H. Class, C. Di, D. Ding, D. Element, A. Firoozabadi, E. Flauraud, J. Franc, F. Gasanzade, Y. Ghomian, M. A. Giddins, C. Green, B. R. B. Fernandes, G. Hadjisotiriou, G. Hammond, H. Huang, D. Kachuma, M. Kern, T. Koch, P. Krishnamurthy, K. O. Lye, D. Landa-Marbán, M. Nole, P. Orsini, N. Ruby, P. Salinas, M. Sayyafzadeh, J. Solovský, J. Torben, A. Turner, D. V. Voskov, K. Wendel, A. A. Youssef &lt;a class="link" href="https://arxiv.org/pdf/2507.15861" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Benchmarking CO2 Storage Simulations: Results from the 11th Society of Petroleum Engineers Comparative Solution Project&lt;/em&gt;&lt;/a&gt;, to appear,
+International Journal of Greenhouse Gas Control (2025)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;E. Ahmed, B. Amaziane, S. Chabab, S. D. Santacreu, G. Galliéro, O. Møyner, X. Raynaud
+&lt;a class="link" href="https://doi.org/10.1016/j.ijhydene.2025.150947" target="_blank" rel="noopener"
+&gt;Modeling and Simulation of Coupled Biochemical and Two-Phase Compositional Flow in Underground Hydrogen Storage&lt;/a&gt;, International Journal of Hydrogen Energy (2025) &lt;a class="link" href="https://arxiv.org/pdf/2506.02582" target="_blank" rel="noopener"
+&gt;Preprint link&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K. Holme, K.-A. Lie, O. Møyner, A. Johansson. &lt;a class="link" href="https://doi.org/10.2118/223885-PA" target="_blank" rel="noopener"
+&gt;Grid-orientation effects in the 11th SPE Comparative Solution Project using unstructured grids and consistent discretizations SPE Reservoir Simulation Conference&lt;/a&gt;, SPE Journal (2025).&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner &lt;a class="link" href="https://link.springer.com/content/pdf/10.1007/s10596-025-10366-6.pdf" target="_blank" rel="noopener"
+&gt;&lt;em&gt;JutulDarcy. jl-a fully differentiable high-performance reservoir simulator based on automatic differentiation&lt;/em&gt;&lt;/a&gt;, Computational Geosciences (2025)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;L. Bertoni, O. Møyner, J. Wiegner, M. Gazzani, &lt;a class="link" href="https://doi.org/10.1016/j.compchemeng.2025.109293" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Optimizing carbon capture and storage infrastructure including physics-based reservoir modeling&lt;/em&gt;&lt;/a&gt;, Computers &amp;amp; Chemical Engineering (2025)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.-A. Lie, O. Møyner, Ø. Klemetsdal, &lt;a class="link" href="https://doi.org/10.2118/212199-PA" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Accelerating Nonlinear Convergence in Reservoir Simulation by Adaptive Relaxation and Nonlinear Domain-Decomposition Preconditioning&lt;/em&gt;&lt;/a&gt;, SPE Journal (2025)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;R.H. Deucher, J. Franc, O. Møyner, H.A. Tchelepi, &lt;em&gt;Compositional reservoir simulation with a high-resolution compact stencil adaptive implicit method&lt;/em&gt;, Journal of Computational Physics (2025)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;J. Li, L. Zhao, O. Møyner, K.A. Lie, &lt;em&gt;A new near-wellbore modeling method for deviated wells in corner-point grid&lt;/em&gt;, Advances in Geo-Energy Research (2025)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;B.N. Aslam, B. Yan, K.A. Lie, S. Krogstad, O. Møyner, X. He, &lt;em&gt;A novel hybrid physics/data-driven model for fractured reservoir simulation&lt;/em&gt;, SPE Journal (2024)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;E. Ahmed, O. Møyner, X. Raynaud, H.M. Nilsen, &lt;em&gt;Phase behavior and black-oil simulations of Hydrogen storage in saline aquifers&lt;/em&gt;, Advances in Water Resources (2024)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;L. Saló-Salgado, O. Møyner, K.A. Lie, R. Juanes, &lt;em&gt;Three-dimensional simulation of geologic carbon dioxide sequestration using MRST&lt;/em&gt;, Advances in Geo-Energy Research (2024)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Z. Yin, M. Louboutin, O. Møyner, F.J. Herrmann, &lt;em&gt;Time-lapse full-waveform permeability inversion: A feasibility study&lt;/em&gt;, The Leading Edge (2024)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;W. Xiong, Z.H. Zhang, Y.L. Zhao, W.M. Wen, K. Bao, O. Møyner, K.A. Lie, &lt;em&gt;Compositional simulation for carbon storage in porous media using an electrolyte association equation of state&lt;/em&gt;, SPE Journal (2024)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;J. Franc, O. Møyner, H.A. Tchelepi, &lt;em&gt;Coupling-strength criteria for sequential implicit formulations&lt;/em&gt;, Journal of Computational Physics (2023)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, A.F. Rasmussen, Ø. Klemetsdal, H.M. Nilsen, A. Moncorgé, K.A. Lie, &lt;em&gt;Nonlinear domain-decomposition preconditioning for robust and efficient field-scale simulation of subsurface flow&lt;/em&gt;, Computational Geosciences (2023)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;M. Louboutin, Z. Yin, R. Orozco, T.J. Grady, A. Siahkoohi, G. Rizzuti, P.A. Witte, O. Møyner, G.J. Gorman, F.J. Herrmann, &lt;em&gt;Learned multiphysics inversion with differentiable programming and machine learning&lt;/em&gt;, The Leading Edge (2023)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø.S. Klemetsdal, A. Moncorgé, H.M. Nilsen, O. Møyner, K.A. Lie, &lt;em&gt;An adaptive sequential fully implicit domain-decomposition solver&lt;/em&gt;, SPE Journal (2022)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;E. Ahmed, Ø. Klemetsdal, X. Raynaud, O. Møyner, H.M. Nilsen, &lt;em&gt;Adaptive Timestepping, Linearization, and A Posteriori Error Control for Multiphase Flow of Immiscible Fluids in Porous Media with Wells&lt;/em&gt;, SPE Journal (2022)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;X. Raynaud, A. Pizzolato, A. Johansson, F. Caresani, A. Ferrari, O. Møyner, H.M. Nilsen, A. Cominelli, K.A. Lie, &lt;em&gt;Toward accurate reservoir simulations on unstructured grids: design of simple error estimators and critical benchmarking of consistent discretization methods for practical implementation&lt;/em&gt;, SPE Journal (2021)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, O. Møyner, A. Moncorgé, H.M. Nilsen, K.A. Lie, &lt;em&gt;High-resolution compositional reservoir simulation with dynamic coarsening and local timestepping for unstructured grids&lt;/em&gt;, SPE Journal (2021)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;H. Ni, O. Møyner, K.D. Kurtev, S.M. Benson, &lt;em&gt;Quantifying CO2 capillary heterogeneity trapping through macroscopic percolation simulation&lt;/em&gt;, Advances in Water Resources 155 (2021)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, O. Møyner, A. Moncorgé, K.A. Lie, &lt;em&gt;A numerical study of the additive Schwarz preconditioned exact Newton method (ASPEN) as a nonlinear preconditioner for immiscible and compositional porous media flow&lt;/em&gt;, Computational Geosciences (2021)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;M. Alcanié, M. Collignon, O. Møyner, M. Lupi, &lt;em&gt;3D Basin‐scale groundwater flow modeling as a tool for geothermal exploration: Application to the Geneva basin, Switzerland‐France&lt;/em&gt;, Geochemistry, Geophysics, Geosystems (2021)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;S.B.S. Bosma, S. Klevtsov, O. Møyner, N. Castelletto, &lt;em&gt;Enhanced multiscale restriction-smoothed basis (MsRSB) preconditioning with applications to porous media flow and geomechanics&lt;/em&gt;, Journal of Computational Physics (2021)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;M. Collignon, Ø. Klemetsdal, O. Møyner, M. Alcanié, A.P. Rinaldi, H.M. Nilsen, M. Lupi, &lt;em&gt;Evaluating thermal losses and storage capacity in high-temperature aquifer thermal energy storage (HT-ATES) systems with well operating limits: insights from a study-case in the Greater Geneva Basin, Switzerland&lt;/em&gt;, Geothermics (2020)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;G. Linga, O. Møyner, H.M. Nilsen, A. Moncorgé, K.A. Lie, &lt;em&gt;An implicit local time-stepping method based on cell reordering for multiphase flow in porous media&lt;/em&gt;, Journal of Computational Physics X (2020)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, H.M. Nilsen, O. Andersen, &lt;em&gt;Multi-Model Hybrid Compositional Simulator With Application To Segregated Flow&lt;/em&gt;, Computational Geosciences (2019)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;A. Moncorgé, O. Møyner, H.A. Tchelepi, P. Jenny, &lt;em&gt;Consistent upwinding for sequential fully-implicit multiscale compositional simulation&lt;/em&gt;, Computational Geosciences (2019)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, A. Moncorgé, &lt;em&gt;Nonlinear Domain Decomposition Scheme for Sequential Fully Implicit Formulation of Compositional Multiphase Flow&lt;/em&gt;, Computational Geosciences (2019)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, O. Møyner, K.A. Lie, &lt;em&gt;Efficient Reordered Nonlinear Gauss-Seidel Solvers With Higher Order For Black-Oil Models&lt;/em&gt;, Computational Geosciences, DOI: 10.1007/s10596-019-09844-5 (2019)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, O. Møyner, K.A. Lie, &lt;em&gt;Accelerating Multiscale Simulation of Complex Geomodels by Use of Dynamically Adapted Basis Functions&lt;/em&gt;, Computational Geosciences (2019)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.A. Lie, O. Møyner, T.S. Mykkeltvedt, &lt;em&gt;Fully Implicit WENO Schemes On Stratigraphic And Fully Unstructured Grids&lt;/em&gt;, Computational Geosciences (2019)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, O. Møyner, K.A. Lie, &lt;em&gt;Robust nonlinear Newton solver with adaptive interface-localized trust regions&lt;/em&gt;, SPE Journal (2019)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, H.M. Nilsen, &lt;em&gt;Multiresolution Coupled Vertical Equilibrium Model for Fast Flexible Simulation of CO2 storage&lt;/em&gt;, Computational Geosciences (2019)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;R. Allen, H.M. Nilsen, K.A. Lie, O. Møyner, O. Andersen, &lt;em&gt;Using Simplified Methods to Explore the Impact of Parameter Uncertainty on CO2 Storage Estimates with Application to the Norwegian Continental Shelf&lt;/em&gt;, International Journal of Greenhouse Gas Control (2019)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, H.A. Tchelepi, &lt;em&gt;A Mass-Conservative Sequential Implicit Multiscale Method for General Compositional Problems&lt;/em&gt;, SPE Journal (2019)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.A. Lie, O. Møyner, J.R. Natvig, &lt;em&gt;Use of Multiple Multiscale Operators To Accelerate Simulation of Complex Geomodels&lt;/em&gt;, SPE Journal (2017)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, &lt;em&gt;Nonlinear Solver for Three-Phase Transport Problems Based on Approximate Trust Regions&lt;/em&gt;, Computational Geosciences (2017)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.A. Lie, O. Møyner, J.R. Natvig, A. Kozlova, K. Bratvedt, S. Watanabe, &lt;em&gt;Successful Application of Multiscale Methods in a Real Reservoir Simulator Environment&lt;/em&gt;, Computational Geosciences (2017)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K. Bao, K.A. Lie, O. Møyner, M. Liu, &lt;em&gt;Fully-implicit simulation of polymer flooding with MRST&lt;/em&gt;, Computational Geosciences (2017)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;S. Shah, O. Møyner, M. Tene, K.A. Lie, H. Hajibeygi, &lt;em&gt;The multiscale restriction smoothed basis method for fractured porous media (F-MsRSB)&lt;/em&gt;, Journal of Computational Physics 318 (2016)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, K.A. Lie, &lt;em&gt;A Multiscale Restriction-Smoothed Basis Method for Compressible Black-Oil Models&lt;/em&gt;, SPE Journal 21.6 (2016)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;S.T. Hilden, O. Møyner, K.A. Lie, K. Bao, &lt;em&gt;Multiscale Simulation of Polymer Flooding with Shear Effects&lt;/em&gt;, Transport in Porous Media 113.1 (2016)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, K.A. Lie, &lt;em&gt;A Multiscale Restriction-Smoothed Basis Method for High Contrast Porous Media Represented on Unstructured Grids&lt;/em&gt;, Journal of Computational Physics 304 (2015)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.A. Lie, H.M. Nilsen, O. Andersen, O. Møyner, &lt;em&gt;A simulation workflow for large-scale CO2 storage in the Norwegian North Sea&lt;/em&gt;, Computational Geosciences (2015)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;H.M. Nilsen, K.A. Lie, O. Møyner, O. Andersen, &lt;em&gt;Spill-point analysis and structural trapping capacity in saline aquifers using MRST-co2lab&lt;/em&gt;, Computers &amp;amp; Geosciences 75 (2015)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, S. Krogstad, K.A. Lie, &lt;em&gt;The application of flow diagnostics for reservoir management&lt;/em&gt;, SPE Journal 20.2 (2014)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, K.A. Lie, &lt;em&gt;A multiscale two-point flux-approximation method&lt;/em&gt;, Journal of Computational Physics 275 (2014)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, K.A. Lie, &lt;em&gt;The multiscale finite-volume method on stratigraphic grids&lt;/em&gt;, SPE Journal 19.5 (2014)&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="books"&gt;Books
+&lt;/h2&gt;&lt;ol&gt;
+&lt;li&gt;K.-A. Lie, O. Møyner (Editors). &lt;em&gt;Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)&lt;/em&gt;, Cambridge University Press (2021)&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="peer-reviewed-book-chapters"&gt;Peer-reviewed book chapters
+&lt;/h2&gt;&lt;p&gt;In &lt;em&gt;Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)&lt;/em&gt; (2021):&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner. &amp;ldquo;Better AD Simulators with Flexible State Functions and Accurate Discretizations&amp;rdquo;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner. &amp;ldquo;Faster Simulation with Optimized Automatic Differentiation and Compiled Linear Solvers&amp;rdquo;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner. &amp;ldquo;Compositional Simulation with the AD-OO Framework&amp;rdquo;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.-A. Lie and O. Møyner &amp;ldquo;Multiscale Pressure Solvers for Stratigraphic and Polytopal Grids&amp;rdquo;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;M. Collignon, Ø.S. Klemetsdal, O. Møyner &amp;ldquo;Simulation of Geothermal Systems using MRST&amp;rdquo;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="conference-proceedings"&gt;Conference proceedings
+&lt;/h2&gt;&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;Ø Klemetsdal, O Andersen, O Møyner, &lt;a class="link" href="https://doi.org/10.3997/2214-4609.202521164" target="_blank" rel="noopener"
+&gt;Fimbul.jl - Fast, Flexible, Robust, and Differentiable Geothermal Energy Simulation in Julia&lt;/a&gt;, EAGE GET 2025.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;S. Krogstad, M. A. Jakymec, A. Kianinejad, D. Pertuso, S. Matringe, A. Brostrom, J. Torben, O. Møyner, K.-A. Lie
+&lt;a class="link" href="https://doi.org/10.15530/urtec-2025-4253913" target="_blank" rel="noopener"
+&gt;Reduced Physics-Based Simulation for Unconventional Production Forecasting-A 1D Approach&lt;/a&gt;. SPE/AAPG/SEG Unconventional Resources Technology Conference June 2025.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner and K.-A. Lie. A data-driven approach to select optimal time steps for complex reservoir models. SPE Reservoir Simulation Conference, Galveston, Texas, USA, 25-27 Mar 2025.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K. Holme, K.-A. Lie, O. Møyner, A. Johansson. Grid-orientation effects in the 11th SPE Comparative Solution Project using unstructured grids and consistent discretizations SPE Reservoir Simulation Conference, Galveston, Texas, USA, 25-27 Mar 2025.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, &lt;em&gt;JutulDarcy.jl - a fully differentiable high-performance reservoir simulator based on automatic differentiation&lt;/em&gt;, ECMOR 2024&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.A. Lie, O. Møyner, Ø. Klemetsdal, B. Skaflestad, A. Moncorgé, V. Kippe, &lt;em&gt;Enhancing Performance of Complex Reservoir Models via Convergence Monitors&lt;/em&gt;, ECMOR 2024&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;A.F. Rasmussen, O. Møyner, B. Skaflestad, K.A. Lie, J. Torben, A. Moncorgé, V. Kippe, &lt;em&gt;Distributed Field-Scale Parallel Nonlinear Domain Decomposition Solver&lt;/em&gt;, ECMOR 2024&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;BN. Aslam, B. Yan, K.-A. Lie, S. Krogstad, O. Møyner, X. He, &lt;em&gt;DiagNet-A Hybrid Physics-Data Driven Model for Fractured Reservoir Simulation&lt;/em&gt;, SPE GOTECH, 2024&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K-A. Lie, O. Møyner, Ø.A. Klemetsdal, &lt;em&gt;An Adaptive Newton–ASPEN Solver for Complex Reservoir Models&lt;/em&gt;, SPE Reservoir Simulation Conference 2023&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O Møyner, A Rasmussen, Ø Klemetsdal, H Nilsen, A Moncorgé, K Lie, &lt;em&gt;Nonlinear Domain Decomposition Preconditioning for Robust and Efficient Field-Scale Simulation of Subsurface Flow&lt;/em&gt;, ECMOR 2022&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;MAB. Reveron, HH. Holm, O. Møyner, S. Krogstad, K.-A. Lie &lt;em&gt;Numerical Comparison Between ES-MDA and Gradient-Based Optimization for History Matching of Reduced Reservoir Models&lt;/em&gt;, SPE Reservoir Simulation Conference 2021&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, O. Møyner, A. Moncorgé, HM. Nilsen, K.-A. Lie, &lt;em&gt;High-resolution compositional reservoir simulation with dynamic coarsening and local timestepping for unstructured grids&lt;/em&gt;, SPE Reservoir Simulation Conference 2021&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;J. Franc, O. Møyner, HA. Tchelepi &lt;em&gt;Coupling-Strength Criteria for Sequential Implicit Formulations&lt;/em&gt;, SPE Reservoir Simulation Conference 2021&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;E. Ahmed, Ø. Klemetsdal, X. Raynaud, O. Møyner, H.M. Nilsen, &lt;em&gt;Adaptive Time Stepping, Linearization and a Posteriori Error Control for Multiphase Flow with Wells&lt;/em&gt;, SPE Reservoir Simulation Conference 2021&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner. &lt;em&gt;Dynamic Saturation Reconstruction for Multiphase Flow by Time-Of-Flight Fill Functions&lt;/em&gt;. In ECMOR XVII 2020.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, A. Moncorgé, O. Møyner, K.-A. Lie. &lt;em&gt;Additive Schwarz Preconditioned Exact Newton Method as a Nonlinear Preconditioner for Multiphase Porous Media Flow&lt;/em&gt;. In ECMOR XVII 2020.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;HM. Nilsen, A. Moncorgé, K. Bao, O. Møyner, K.-A. Lie, A. Brodtkorb. &lt;em&gt;Comparison Between Algebraic Multigrid and Multilevel Multiscale Methods for Reservoir Simulation&lt;/em&gt;. In ECMOR XVII 2020.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;M. Borregales, O. Møyner, S. Krogstad, K.-A. Lie. &lt;em&gt;Data-Driven Models Based on Flow Diagnostics&lt;/em&gt;. In ECMOR XVII 2020.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, O. Møyner, X. Raynaud, K.-A. Lie. &lt;em&gt;A Comparison of Consistent Discretizations for Elliptic Problems on Polyhedral Grids&lt;/em&gt;. In: International Conference on Finite Volumes for Complex Applications, 585-594. 2020.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, O. Møyner and K.-A. Lie. &lt;em&gt;Implicit High-Resolution Compositional Simulation With Optimal Ordering of Unknowns and Adaptive Spatial Refinement&lt;/em&gt; In: Reservoir Simulation Conference, Galveston, Texas, USA, 10-11 April 2019&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;R. Toft, K.-A. Lie, and O. Møyner. &lt;em&gt;Full Approximation Scheme for Reservoir Simulation.&lt;/em&gt; In: Norsk Informatikkonferanse (NIK), 18-20 September, 2018.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner and A. Moncorgé. &lt;a class="link" href="https://drive.google.com/open?id=1_pf73QtG0Rem8jWSTAvId8NQ6SKgAdX1" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Nonlinear Domain Decomposition Scheme for Sequential Fully Implicit Formulation of Compositional Multiphase Flow&lt;/em&gt;&lt;/a&gt;. In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, A. F. Rasmussen, O. Møyner and K.-A. Lie. &lt;a class="link" href="http://dx.doi.org/10.1007/s10596-019-09844-5" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Nonlinear Gauss-Seidel Solvers With Higher Order For Black-Oil Models&lt;/em&gt;&lt;/a&gt;. In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, O. Møyner and K.-A. Lie. &lt;a class="link" href="https://drive.google.com/open?id=1BkiqjAVaQhboFfpRjXXKVGgGQ4O4gz-x" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Use Of Dynamically Adapted Basis Functions To Accelerate Multiscale Simulation Of Complex Geomodels&lt;/em&gt;&lt;/a&gt;. In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.-A. Lie, O. Møyner and T. S. Mykkeltvedt. &lt;a class="link" href="https://drive.google.com/open?id=1de3vRVpiy330y8F1xkKFoqK4z7V2l-Zu" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Fully Implicit WENO Schemes On Stratigraphic And Fully Unstructured Grids&lt;/em&gt;&lt;/a&gt;. In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner, O. Andersen and H. M. Nilsen. &lt;a class="link" href="https://drive.google.com/open?id=1QpRSgQKQ-99RFIIlD1Hto1Q_liDaqJKE" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Multi-Model Hybrid Compositional Simulator with Application to Segregated flow&lt;/em&gt;&lt;/a&gt;. In: ECMOR XVI – 16th European Conference on the Mathematics of Oil Recovery, Barcelona, Spain, September 3-6, 2018.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, O. Møyner, X. Raynaud, and K.-A. Lie. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nRUx5RjJUN0JHdDQ" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Non-linear Newton Solver for a Polymer Two-phase System Using Interface-localized Trust Regions&lt;/em&gt;&lt;/a&gt;. In: 19th European Conference on Improved Oil Recovery, Stavanger, Norway, 24-27 April 2017. 2017.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.-A. Lie, O. Møyner, and J. R. Natvig. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nelNWeFRRSlVWb00" target="_blank" rel="noopener"
+&gt;&lt;em&gt;A Feature-Enriched Multiscale Method for Simulating Complex Geomodels&lt;/em&gt;&lt;/a&gt;. In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal, R. L. Berge, K.-A. Lie, H. M. Nilsen, and O. Møyner. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nRTM2cTVQc2NyMjQ" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Unstructured Gridding and Consistent Discretizations for Reservoirs With Faults and Complex Wells&lt;/em&gt;&lt;/a&gt;. In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner and H.A. Tchelepi. *A Multiscale Restriction-Smoothed Basis Method for Compositional Models. In: Reservoir Simulation Conference, Montgomery, Texas, USA, 20-22 February 2017.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8ncEFyRk03eDFlVzQ" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Nonlinear Solver for Three-Phase Transport Problems Based on Approximate Trust Regions&lt;/em&gt;&lt;/a&gt;. In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.-A. Lie, O. Møyner, J. R. Natvig, A. Kozlova, K. Bratvedt, and S. Watanabe. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nX0xXMG5VRzJtVHM" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Successful Application of Multiscale Methods in a Real Reservoir Simulator Environment&lt;/em&gt;&lt;/a&gt;. In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K. Bao, K.-A. Lie, O. Møyner, and M. Liu. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nazJHZnhuZEE2bm8" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Fully Implicit Simulation of Polymer Flooding with MRST&lt;/em&gt;&lt;/a&gt;. In: ECMOR XV – 15th European Conference on the Mathematics of Oil Recovery, Amsterdam, The Netherlands, August 29 - September 1, 2016.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner and K.-A. Lie. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nbEUzbERoZ2NHb1E" target="_blank" rel="noopener"
+&gt;&lt;em&gt;A Multiscale Method Based on Restriction-Smoothed Basis Functions Suitable for General Grids in High Contrast Media&lt;/em&gt;&lt;/a&gt;. In: SPE Reservoir Simulation Symposium held in Houston, Texas, USA, 23–25 February 2015.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.-A. Lie, S. Krogstad, and O. Møyner. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nbEUzbERoZ2NHb1E" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Application of flow diagnostics and multiscale methods for reservoir management&lt;/em&gt;&lt;/a&gt;. In: Reservoir Simulation Symposium, Houston, Texas, USA, 23-25 February 2015&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;S. Krogstad, K.-A. Lie, O. Møyner, H.M. Nilsen, X. Raynaud, and B. Skaflestad. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nVFV3ZnFFQjA4UzA" target="_blank" rel="noopener"
+&gt;&lt;em&gt;MRST-AD – an Open-Source Framework for Rapid Prototyping and Evaluation of Reservoir Simulation Problems&lt;/em&gt;&lt;/a&gt;. In: SPE Reservoir Simulation Symposium, 23–25 February, Houston, Texas. 2015.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;K.-A. Lie, H.M. Nilsen, O. Andersen, and O. Møyner. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nX003VmxSMDlPS2c" target="_blank" rel="noopener"
+&gt;&lt;em&gt;A simulation workflow for large-scale CO2 storage in the Norwegian North Sea&lt;/em&gt;&lt;/a&gt;. In: ECMOR XIV – 14th European Conference on the Mathematics of Oil Recovery, Catania, Sicily, Italy, 8-11 September 2014. EAGE. 2014. doi: 10.3997/2214-4609.20141877.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nTkxzajEtRkhtNGs" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Construction of Multiscale Preconditioners on Stratigraphic Grids&lt;/em&gt;&lt;/a&gt;. In: ECMOR XIV – 14th European Conference on the Mathematics of Oil Recovery, Catania, Sicily, Italy, 8-11 September 2014. EAGE. 2014. doi: 10.3997/2214-4609.20141775.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner and K.-A. Lie. &lt;a class="link" href="https://drive.google.com/open?id=0B1GmpCOimV8nUFRzcWFlUXk0Z2c" target="_blank" rel="noopener"
+&gt;&lt;em&gt;The multiscale finite volume method on unstructured grids&lt;/em&gt;&lt;/a&gt;. In: SPE Reservoir Simulation Symposium, The Woodlands, TX, USA, 18–20 February 2013. SPE 163649-MS. 2013. doi: 10.2118/163649-MS.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="theses"&gt;Theses
+&lt;/h2&gt;&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner. &lt;a class="link" href="https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/2431831" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Next Generation Multiscale Methods for Reservoir Simulation&lt;/em&gt;&lt;/a&gt;. Ph.D. thesis, Norwegian University of Science and Technology (NTNU). 2016.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner. &lt;a class="link" href="https://ntnuopen.ntnu.no/ntnu-xmlui/handle/11250/259015" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Multiscale Finite Volume Methods: Extension to Unstructured Grids with Applications in Reservoir Simulation&lt;/em&gt;&lt;/a&gt;. M.Sc. thesis, NTNU. 2012.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="other"&gt;Other
+&lt;/h2&gt;&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;O. Møyner. &lt;a class="link" href="https://www.siam.org/publications/siam-news/articles/multiscale-simulation-of-flow-and-transport-in-porous-media/" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Multiscale Simulation of Flow and Transport in Porous Media&lt;/em&gt;&lt;/a&gt;. SIAM News, 2019.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ø. Klemetsdal and O. Møyner. &lt;a class="link" href="https://ecmiindmath.org/2018/09/29/using-physics-to-speed-up-reservoir-simulation/" target="_blank" rel="noopener"
+&gt;&lt;em&gt;Using physics to speed up reservoir simulation&lt;/em&gt;&lt;/a&gt;. European Consortium for Mathematics in Industry news page, 2018.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;</description></item><item><title>Software</title><link>https://moyner.github.io/software/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/software/</guid><description>&lt;p&gt;I enjoy writing software, and much of my work depends on high-quality software, usually with some flavor of automatic differentiation. This pages lists open source software where I am a maintainer. See also &lt;a class="link" href="https://github.com/moyner" target="_blank" rel="noopener"
+&gt;my GitHub profile&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id="mrst"&gt;MRST
+&lt;/h2&gt;&lt;p&gt;&lt;img src="https://moyner.github.io/software/mrst.png"
+width="376"
+height="124"
+srcset="https://moyner.github.io/software/mrst_hu_a2e3c24b012604da.png 480w, https://moyner.github.io/software/mrst_hu_a72f7f8db9239a11.png 1024w"
+loading="lazy"
+alt="MRST logo"
+class="gallery-image"
+data-flex-grow="303"
+data-flex-basis="727px"
+&gt;&lt;/p&gt;
+&lt;p&gt;The &lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+&gt;MATLAB Reservoir Simulation Toolbox (MRST)&lt;/a&gt; is an &lt;a class="link" href="https://www.sintef.no/projectweb/mrst/" target="_blank" rel="noopener"
+&gt;open source toolbox for simulation of flow, mechanics and transport in porous media&lt;/a&gt; developed at &lt;a class="link" href="https://www.sintef.no/en/digital/departments-new/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/" target="_blank" rel="noopener"
+&gt;group for Applied Computational Science&lt;/a&gt;. The software has been used in over &lt;a class="link" href="https://www.sintef.no/projectweb/mrst/publications/" target="_blank" rel="noopener"
+&gt;1000 publications all over the world&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id="jutuljl"&gt;Jutul.jl
+&lt;/h2&gt;&lt;p&gt;&lt;img src="https://moyner.github.io/software/jutul_small.png"
+width="607"
+height="181"
+srcset="https://moyner.github.io/software/jutul_small_hu_efd89f1765f7c183.png 480w, https://moyner.github.io/software/jutul_small_hu_e93a8fcdafeb0e33.png 1024w"
+loading="lazy"
+alt="Jutul.jl logo"
+class="gallery-image"
+data-flex-grow="335"
+data-flex-basis="804px"
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://github.com/sintefmath/Jutul.jl" target="_blank" rel="noopener"
+&gt;Jutul.jl&lt;/a&gt; is a Julia framework for fully differentiable multiphysics simulators based on implicit finite-volume methods with automatic differentiation with integrated support for 3D visualization and adjoints. Used for several applications, including reservoir simulation, carbon capture, battery simulation and more.&lt;/p&gt;
+&lt;h2 id="jutuldarcyjl"&gt;JutulDarcy.jl
+&lt;/h2&gt;&lt;p&gt;&lt;img src="https://moyner.github.io/software/jutuldarcy_wide.png"
+width="994"
+height="181"
+srcset="https://moyner.github.io/software/jutuldarcy_wide_hu_23a7d53f8331b764.png 480w, https://moyner.github.io/software/jutuldarcy_wide_hu_681391aa960c66e6.png 1024w"
+loading="lazy"
+alt="JutulDarcy.jl logo"
+class="gallery-image"
+data-flex-grow="549"
+data-flex-basis="1318px"
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy.jl&lt;/a&gt; is the primary demonstrator for Jutul.jl: A fast and fully differentiable reservoir simulator with support for a wide range of meshes and physics. The package also has a Python wrapper: &lt;a class="link" href="https://github.com/sintefmath/PyJutulDarcy" target="_blank" rel="noopener"
+&gt;pyjutuldarcy&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id="battmojl"&gt;BattMo.jl
+&lt;/h2&gt;&lt;p&gt;&lt;img src="https://moyner.github.io/software/battmologo_text.png"
+width="1643"
+height="613"
+srcset="https://moyner.github.io/software/battmologo_text_hu_3fc430861c7d9dfb.png 480w, https://moyner.github.io/software/battmologo_text_hu_228988ebc05dd432.png 1024w"
+loading="lazy"
+alt="BattMo logo"
+class="gallery-image"
+data-flex-grow="268"
+data-flex-basis="643px"
+&gt;&lt;/p&gt;
+&lt;p&gt;BattMo.jl, built on top of Jutul.jl, is a Julia version of the BattMo toolbox. Supports fast simulation of pseudo X-dimensional (PXD) framework for the Doyle-Fuller-Newman model of lithium-ion battery cells on general meshes.&lt;/p&gt;
+&lt;h2 id="multicomponentflashjl"&gt;MultiComponentFlash.jl
+&lt;/h2&gt;&lt;p&gt;&lt;img src="https://moyner.github.io/software/phase_diagram_simple.png"
+width="600"
+height="400"
+srcset="https://moyner.github.io/software/phase_diagram_simple_hu_85b6491e98d9730e.png 480w, https://moyner.github.io/software/phase_diagram_simple_hu_5af7d9d3475d0e0.png 1024w"
+loading="lazy"
+alt="Phase diagram for a methane, n-decane and carbon dioxide mixture"
+class="gallery-image"
+data-flex-grow="150"
+data-flex-basis="360px"
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://github.com/moyner/MultiComponentFlash.jl" target="_blank" rel="noopener"
+&gt;MultiComponentFlash.jl&lt;/a&gt; implements several equations of state for multicomponent vapor-liquid equilibrium, also called flash, for mixtures. These can be used to determine vapor fractions, molar partition between the phases and predict properties such as density and volume.&lt;/p&gt;
+&lt;h2 id="geoenergyiojl"&gt;GeoEnergyIO.jl
+&lt;/h2&gt;&lt;p&gt;&lt;img src="https://moyner.github.io/software/cpmesh.jpg"
+width="800"
+height="707"
+srcset="https://moyner.github.io/software/cpmesh_hu_34fa775d701a7fd6.jpg 480w, https://moyner.github.io/software/cpmesh_hu_2c23c7c07cadf82a.jpg 1024w"
+loading="lazy"
+alt="Example of a generated and processed corner-point mesh"
+class="gallery-image"
+data-flex-grow="113"
+data-flex-basis="271px"
+&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a class="link" href="https://github.com/sintefmath/GeoEnergyIO.jl" target="_blank" rel="noopener"
+&gt;GeoEnergyIO.jl&lt;/a&gt; implements parsing of input formats from GeoEnergy applications (corner-point/GRDECL meshes, simulation input files and so on) as well as support for writing output in industry standard formats.&lt;/p&gt;
+&lt;h2 id="spe11-visualizer"&gt;SPE11 visualizer
+&lt;/h2&gt;&lt;div class="video-wrapper"&gt;
+&lt;video
+controls
+src="opm4b.mp4"
+&gt;
+&lt;p&gt;
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="opm4b.mp4"&gt;link to the video&lt;/a&gt; instead.
+&lt;/p&gt;
+&lt;/video&gt;
+&lt;/div&gt;
+&lt;p&gt;The &lt;a class="link" href="https://github.com/moyner/CSP11Visualizer.jl/" target="_blank" rel="noopener"
+&gt;CSP11Visualizer.jl&lt;/a&gt; is used to generate the &lt;a class="link" href="https://moyner.github.io/SPE11-plot-test-deploy/index.html" target="_blank" rel="noopener"
+&gt;static result website&lt;/a&gt; for the &lt;a class="link" href="https://spe.org/en/csp/spe11/" target="_blank" rel="noopener"
+&gt;11th SPE Comparative Solutions Project on CO2 storage&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>Search</title><link>https://moyner.github.io/search/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://moyner.github.io/search/</guid><description/></item></channel></rss>
