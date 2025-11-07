@@ -15,12 +15,17 @@ If you want access to any of the publications but are unable to do so because of
 
 ## Preprints
 
-1. J. M. Nordbotten, M. A. Fernø, B. Flemisch, A. R. Kovscek, K.-A. Lie, J. W. Both, O. Møyner, T. H. Sandve, E. Ahusborde, S. Bauer, Z. Chen, H. Class, C. Di, D. Ding, D. Element, A. Firoozabadi, E. Flauraud, J. Franc, F. Gasanzade, Y. Ghomian, M. A. Giddins, C. Green, B. R. B. Fernandes, G. Hadjisotiriou, G. Hammond, H. Huang, D. Kachuma, M. Kern, T. Koch, P. Krishnamurthy, K. O. Lye, D. Landa-Marbán, M. Nole, P. Orsini, N. Ruby, P. Salinas, M. Sayyafzadeh, J. Solovský, J. Torben, A. Turner, D. V. Voskov, K. Wendel, A. A. Youssef [*Benchmarking CO2 Storage Simulations: Results from the 11th Society of Petroleum Engineers Comparative Solution Project*](https://arxiv.org/pdf/2507.15861)
-
-1. E. Ahmed, B. Amaziane, S. Chabab, S. D. Santacreu, G. Galliéro, O. Møyner, X. Raynaud
-[Modeling and Simulation of Coupled Biochemical and Two-Phase Compositional Flow in Underground Hydrogen Storage](https://arxiv.org/pdf/2506.02582)
+No current preprints available.
 
 ## Journal publications
+
+1. J. M. Nordbotten, M. A. Fernø, B. Flemisch, A. R. Kovscek, K.-A. Lie, J. W. Both, O. Møyner, T. H. Sandve, E. Ahusborde, S. Bauer, Z. Chen, H. Class, C. Di, D. Ding, D. Element, A. Firoozabadi, E. Flauraud, J. Franc, F. Gasanzade, Y. Ghomian, M. A. Giddins, C. Green, B. R. B. Fernandes, G. Hadjisotiriou, G. Hammond, H. Huang, D. Kachuma, M. Kern, T. Koch, P. Krishnamurthy, K. O. Lye, D. Landa-Marbán, M. Nole, P. Orsini, N. Ruby, P. Salinas, M. Sayyafzadeh, J. Solovský, J. Torben, A. Turner, D. V. Voskov, K. Wendel, A. A. Youssef [*Benchmarking CO2 Storage Simulations: Results from the 11th Society of Petroleum Engineers Comparative Solution Project*](https://arxiv.org/pdf/2507.15861), to appear,
+International Journal of Greenhouse Gas Control (2025)
+
+1. E. Ahmed, B. Amaziane, S. Chabab, S. D. Santacreu, G. Galliéro, O. Møyner, X. Raynaud
+[Modeling and Simulation of Coupled Biochemical and Two-Phase Compositional Flow in Underground Hydrogen Storage](https://doi.org/10.1016/j.ijhydene.2025.150947), International Journal of Hydrogen Energy (2025) [Preprint link](https://arxiv.org/pdf/2506.02582)
+
+1. 1. K. Holme, K.-A. Lie, O. Møyner, A. Johansson. [Grid-orientation effects in the 11th SPE Comparative Solution Project using unstructured grids and consistent discretizations SPE Reservoir Simulation Conference](https://doi.org/10.2118/223885-PA), SPE Journal (2025).
 
 1. O. Møyner [*JutulDarcy. jl-a fully differentiable high-performance reservoir simulator based on automatic differentiation*](https://link.springer.com/content/pdf/10.1007/s10596-025-10366-6.pdf), Computational Geosciences (2025)
 
@@ -134,6 +139,8 @@ In *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)* (202
 
 ## Conference proceedings
 
+1. Ø Klemetsdal, O Andersen, O Møyner, [Fimbul.jl - Fast, Flexible, Robust, and Differentiable Geothermal Energy Simulation in Julia](https://doi.org/10.3997/2214-4609.202521164), EAGE GET 2025.
+
 1. S. Krogstad, M. A. Jakymec, A. Kianinejad, D. Pertuso, S. Matringe, A. Brostrom, J. Torben, O. Møyner, K.-A. Lie
  [Reduced Physics-Based Simulation for Unconventional Production Forecasting-A 1D Approach](https://doi.org/10.15530/urtec-2025-4253913). SPE/AAPG/SEG Unconventional Resources Technology Conference June 2025.
 
@@ -219,6 +226,6 @@ In *Advanced modelling with the MATLAB Reservoir Simulation Toolbox (MRST)* (202
 
 ## Other
 
-1. O. Møyner. *Multiscale Simulation of Flow and Transport in Porous Media*. SIAM News, 2019.
+1. O. Møyner. [*Multiscale Simulation of Flow and Transport in Porous Media*](https://www.siam.org/publications/siam-news/articles/multiscale-simulation-of-flow-and-transport-in-porous-media/). SIAM News, 2019.
 
-1. Ø. Klemetsdal and O. Møyner. *Using physics to speed up reservoir simulation*. European Consortium for Mathematics in Industry news page, 2018.
+1. Ø. Klemetsdal and O. Møyner. [*Using physics to speed up reservoir simulation*](https://ecmiindmath.org/2018/09/29/using-physics-to-speed-up-reservoir-simulation/). European Consortium for Mathematics in Industry news page, 2018.
