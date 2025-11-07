@@ -25,7 +25,7 @@ International Journal of Greenhouse Gas Control (2025)
 1. E. Ahmed, B. Amaziane, S. Chabab, S. D. Santacreu, G. Galliéro, O. Møyner, X. Raynaud
 [Modeling and Simulation of Coupled Biochemical and Two-Phase Compositional Flow in Underground Hydrogen Storage](https://doi.org/10.1016/j.ijhydene.2025.150947), International Journal of Hydrogen Energy (2025) [Preprint link](https://arxiv.org/pdf/2506.02582)
 
-1. 1. K. Holme, K.-A. Lie, O. Møyner, A. Johansson. [Grid-orientation effects in the 11th SPE Comparative Solution Project using unstructured grids and consistent discretizations SPE Reservoir Simulation Conference](https://doi.org/10.2118/223885-PA), SPE Journal (2025).
+1. K. Holme, K.-A. Lie, O. Møyner, A. Johansson. [Grid-orientation effects in the 11th SPE Comparative Solution Project using unstructured grids and consistent discretizations SPE Reservoir Simulation Conference](https://doi.org/10.2118/223885-PA), SPE Journal (2025).
 
 1. O. Møyner [*JutulDarcy. jl-a fully differentiable high-performance reservoir simulator based on automatic differentiation*](https://link.springer.com/content/pdf/10.1007/s10596-025-10366-6.pdf), Computational Geosciences (2025)
 
