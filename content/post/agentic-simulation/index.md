@@ -89,9 +89,7 @@ In addition, there are a set of tools for reading/writing to disk and accessing 
 
 LLMs, especially those that can run locally, often make mistakes. Elling made a choice to include an optional "human-in-the-loop" feature. I think his report put it quite nicely, so I am just going to quote him directly:
 
-> Providing the model with more tools can lead to more complex behavior. This often results in the model acting more autonomously, which can be both an advantage and a challenge. Smaller language models in particular tend to struggle with complex tasks. In my experience, they sometimes choose the wrong tools, get stuck on minor errors, or generate code that does not meet the user’s requirements. One way to address these issues is to include human feedback in the agent’s decision-making process, a method commonly referred to as human-
-in-the-loop (HITL). This approach allows users to provide input and corrections, ensuring that
-the agent’s actions align with their expertise.
+> Providing the model with more tools can lead to more complex behavior. This often results in the model acting more autonomously, which can be both an advantage and a challenge. Smaller language models in particular tend to struggle with complex tasks. In my experience, they sometimes choose the wrong tools, get stuck on minor errors, or generate code that does not meet the user’s requirements. One way to address these issues is to include human feedback in the agent’s decision-making process, a method commonly referred to as human-in-the-loop (HITL). This approach allows users to provide input and corrections, ensuring that the agent’s actions align with their expertise.
 >
 > I have implemented HITL-interactions in the workflow and in many of the available tools. For example, when the agent retrieves information from the JutulDarcy documentation or examples, the user can review and filter the retrieved content. When the agent generates code based on user requirements, it presents the code to the user for review before execution. This gives the user an opportunity to make manual adjustments or suggest improvements.
 

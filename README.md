@@ -6,3 +6,9 @@ For the actual website, please see [moyner.github.io](https://moyner.github.io).
 
 The website is based on the quick start template for [Hugo theme Stack](https://github.com/CaiJimmy/hugo-theme-stack). It uses [Hugo modules](https://gohugo.io/hugo-modules/) feature to load the theme.
 
+## Build instructions
+
+```bash
+hugo build
+hugo serve
+```
