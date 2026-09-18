@@ -148,14 +148,69 @@ s = rand(N)
 kr = s.^2
 ```
 
-
 #### GPU programming in Julia
 
-Going to GPU programming, however, means that you are not allowed to do scalar indexing on the CPU if you want fast code. In practical terms, this means that you either write kernels that perform the same bit of code many times in parallel, or you use vectorized functions on GPU-resident arrays to execute. It is was a bit of a "back to the future"-moment where I had to go back to the old MATLAB mental model for what code was performance safe. Fortunately for me, the GPU ecosystem has improved significantly since 2020, both in terms of capability and usability. The currently 
+Going to GPU programming, however, means that you are not allowed to do scalar indexing on the CPU if you want fast code. In practical terms, this means that you either write kernels that perform the same bit of code many times in parallel, or you use vectorized functions on GPU-resident arrays to execute. It is was a bit of a "back to the future"-moment where I had to go back to the old MATLAB mental model for what code was performance safe. Fortunately for me, the GPU ecosystem has improved significantly since 2020, both in terms of capability and usability. If you want to write vendor-neural (or "run anywhere") code, you can make use of KernelAbstractions. Here is our little relative permeability function again, this time in parallel form:
+
+```julia
+using KernelAbstractions
+# Define kernel
+@kernel function evaluate_kernel(KR, @Const(S))
+    I = @index(Global)
+    @inbounds KR[I] = S[I]^2
+end
+# Write function that launches kernel
+# Can and should do more input testing than this!
+function relperm_ka(kr, s, backend)
+    kernel = evaluate_kernel(backend)
+    kernel(kr, s, ndrange = length(s))
+    return
+end
+out = zeros(N)
+s = rand(N)
+backend = get_backend(s)
+# Call function and synchronize execution
+relperm_ka(out, s)
+KernelAbstractions.synchronize(backend)
+```
+
+This is a bit more complicated, but it is essentially a port of the loop version to a kernel that can be executed on GPUs. Here, we launched it on CPU, but we can then load a backend that matches our graphics card and execute it there as well:
+
+```julia
+using CUDA # Or e.g. AMDGPU
+out = cu(out)
+s = cu(s)
+backend = get_backend(s)
+# Call function and synchronize execution
+relperm_ka(out, s)
+KernelAbstractions.synchronize(backend)
+```
+
+Kernels are quite verbose, but the mental overhead becomes quite small when the functions become larger. The nice thing is that you can also simply do the array version and run that on GPU:
+
+```julia
+using CUDA
+out = cu(out)
+s = cu(s)
+out = s.^2
+```
+
+This also extends to functional programming. Another way to do the same loop is via `map`:
+
+```julia
+out = map(s_i -> s_i^2, s)
+```
+
+GPUs have a lot of threads and memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "number-like" things. In the Julia world, these are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. 
 
 
 
-GPUs have a lot of threads and memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "number-like" things. In the Julia world, these are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. Even if we did not exploit it until now, the design of the Jutul was written with these restrictions of GPUs in mind.
+
+
+
+
+
+GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. Even if we did not exploit it until now, the design of the Jutul was written with these restrictions of GPUs in mind.
 
 
 ### A small example
