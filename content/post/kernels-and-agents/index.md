@@ -33,7 +33,7 @@ There are a few pain points when considering GPU solves for reservoir simulation
 This blog post is not about the great performance offered by GPUs, which is well established in the literature, but rather how reservoir simulation can be executed in a fast manner on GPUs without making the code a "GPU-ified" code that has a lot of complexity and is tied to one particular vendor or execution mode. The ingredients we are going to use are:
 
 1. The Jutul+JutulDarcy framework for automatic differentiation
-1. KernelAbstractions for vendor-neutral parallelization
+1. KernelAbstractions.jl and Adapt.jl for vendor-neutral parallelization
 1. Julia package extensions for load-on-demand functionality
 1. A bit of coding agents to fill in some gaps in the Julia linear solver ecosystem for our particular use case
 
@@ -201,10 +201,112 @@ This also extends to functional programming. Another way to do the same loop is 
 out = map(s_i -> s_i^2, s)
 ```
 
-GPUs have a lot of threads and memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "number-like" things. In the Julia world, these are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. 
+#### Adapt-ing datastructures
+
+The above example is very straightforward, but when you move to real-world applications, life is not so simple. Let us say that we have a cell-wise parameter for the exponent that is wrapped in a type, instead of it being the constant number 2:
+
+```julia
+struct SimpleRelPerm
+    exponents::Vector{Float64}
+end
+
+function evaluate(kr::SimpleRelPerm, s, idx)
+    return s^kr.exponents[idx]
+end
+
+krdef = SimpleRelPerm(0.2.*rand(N))
+s = rand(N)
+
+out = zeros(N)
+for i in eachindex(s)
+    out[i] = evaluate(krdef, s[i], i)
+end
+```
+
+Let us write modify the kernel accordingly:
+
+```julia
+@kernel function evaluate_kernel(KR, relperm_def, @Const(S))
+    I = @index(Global)
+    @inbounds KR[I] = evaluate(relperm_def, S[I], I)
+end
+
+# Write function that launches kernel
+# Can and should do more input testing than this!
+function relperm_ka(kr, krdef, s, backend)
+    kernel = evaluate_kernel(backend)
+    kernel(kr, krdef, s, ndrange = length(s))
+    return
+end
+
+out = zeros(N)
+s = rand(N)
+backend = get_backend(s)
+# Call function and synchronize execution
+relperm_ka(out, krdef, s, backend)
+KernelAbstractions.synchronize(backend)
+```
+
+We should be able to run this on the GPU by converting the arrays like we did before, right?
+
+```julia
+out = cu(out)
+s = cu(s)
+backend = get_backend(s)
+
+relperm_ka(out, krdef, s, backend)
+KernelAbstractions.synchronize(backend)
+```
+
+Uh oh - we get an error message:
+
+```raw
+ERROR: GPU compilation of MethodInstance for gpu_evaluate_kernel(::KernelAbstractions.CompilerMetadata{…}, ::CuDeviceVector{…}, ::SimpleRelPerm, ::CuDeviceVector{…}) failed
+KernelError: passing non-bitstype argument
+
+Argument 4 to your kernel function is of type SimpleRelPerm, which is not a bitstype:
+  .exponents is of type Vector{Float64} which is not isbits.
+    .ref is of type MemoryRef{Float64} which is not isbits.
+      .mem is of type Memory{Float64} which is not isbits.
 
 
+Only bitstypes, which are "plain data" types that are immutable
+and contain no references to other values, can be used in GPU kernels.
+For more information, see the `Base.isbitstype` function.
+```
 
+This type contains a `Vector` - a standard Julia type that does not live in GPU memory! Whi is this an error? GPUs have a lot of threads and internal memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "plain" things that reside on the GPU ("device"). In the Julia world, these "plain" types are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. In theory, we could have compiled a kernel for this - but every time it accessed an element of the exponents, it would have to do a round trip to the regular memory, which is very slow.
+
+But how do we convert the type itself? The answer lies in the `Adapt.jl` package. First, we must make the type parametric so that it can hold any kind of storage for the exponents (essentially similar to a templated class in C++). We then automatically generate an adapt function that takes care of sending the non-isbits-types of our type to GPU memory:
+
+```julia
+using Adapt
+struct SimpleRelPermGeneric{T}
+    exponents::T
+end
+Adapt.@adapt_structure SimpleRelPermGeneric
+
+function evaluate(kr::SimpleRelPermGeneric, s, idx)
+    return s^kr.exponents[idx]
+end
+```
+
+We can then launch the same kernel with the new type, transferred to GPU:
+
+```julia
+krdef_generic = cu(SimpleRelPermGeneric(0.2.*rand(N)))
+relperm_ka(out, krdef_generic, s, backend)
+KernelAbstractions.synchronize(backend)
+```
+
+Now we have a custom type and function running on GPU! For more complicated constructors, it can be required or beneficial to manually write Adapt wrappers. A manual wrapper would look something like this:
+
+```julia
+function Adapt.adapt_structure(to, krdef::SimpleRelPermGeneric)
+    adapted_exponents = Adapt.adapt_structure(to, krdef.exponents)
+    return SimpleRelPermGeneric(adapted_exponents)
+end
+```
 
 
 
