@@ -370,6 +370,7 @@ end
 This is a fairly complicated function that encodes a relationship between inputs (Pressure, Temperature, LiquidMassFractions) and the density output for compositional models. The definition has an internal table for pure phase properties (i.e. brine without CO2, CO2 without vaporized water) that it evaluates. Before the brine density is written to the return array, it is corrected to account for the dissolved CO2 mass fraction.
 
 To get this running on the GPU, two changes were needed. I had to add an `Adapt` call to automatically generate transfers to GPU, and I had to manually adapt the interpolation type:
+
 ```julia
 # In JutulDarcy
 Adapt.@adapt_structure BrineCO2MixingDensities
@@ -385,7 +386,20 @@ function Adapt.adapt_structure(to, interpolant::BilinearInterpolant)
 end
 ```
 
-That's it! Once I had a working approach for porting individual properties, I set up a small test harness and let Codex with Sol 5.6 work for a few hours fixing and testing the remaining property evaluations during the weekend while I did some carpentry around the house (at least I have a backup career if the coding agents take over completely).
+That's it! Note that there are no changes to the functions that define the physics behavior! Once I had a working approach for porting individual properties, I set up a small test harness and let Codex with Sol 5.6 work for a few hours fixing and testing the remaining property evaluations during the weekend while I did some carpentry around the house (at least I have a backup career if the coding agents take over completely).
+
+#### Equations on GPUs
+
+The model equations were also an exercise in using `Adapt`. In addition, I let Sol port one of my old codes for fuzing equation evaluation with assembly. This code was not very useful in serial, but on GPU it saves substantial memory. Many parts of the code had to be slightly modified to handle asynchronous operations and transfer to and from GPUs during input and output, but there were no changes to the outer API or the governing equations themselves.
+
+### Convergence and updates on GPUs
+
+These functions were straightforward to transfer to GPUs. Several fused for-loops that computed several things at once had to be cleaned up. In my opinion, adding GPU support reduced the complexity of this part of the code.
+
+### Linear solvers
+
+### Updates
+
 
 ### A small example
 As an example, consider how we simulate geological sequestration of CO2.
