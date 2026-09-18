@@ -18,14 +18,23 @@ Running models on GPUs can be a major performance benefit, as modern GPUs offer 
 
 There are a few pain points when considering GPU solves for reservoir simulation. As a single code often supports many different types of governing equations that have their own highly performance sensitive kernels for residual and Jacobians, porting to GPU can be a highly invasive process that touches large parts of the code. There is a risk of having separate GPU implementations that live side-by-side with the CPU version and has to be maintained in sync, or to end up with highly GPU-specialized code that is hard to manage and may have worse performance on CPU. NVIDIA is the most popular vendor for GPUs and is programmed by using the the proprietary CUDA library, so you may then naturally run into issues when you want to run on e.g. an AMD card - or some future accelerator that could appear.
 
-This blog post is then not about the great performance offered by GPUs, which are for the most part a given, but rather how reservoir simulation can be executed in a fast manner on GPUs without making the code a "GPU-ified" code that has a lot of complexity. The ingredients we are going to use are:
+This blog post is then not about the great performance offered by GPUs, which are for the most part a given, but rather how reservoir simulation can be executed in a fast manner on GPUs without making the code a "GPU-ified" code that has a lot of complexity and is tied to one particular vendor or execution mode. The ingredients we are going to use are:
 
 1. The Jutul+JutulDarcy framework for automatic differentiation
 1. KernelAbstractions for vendor-neutral parallelization
 1. Julia package extensions for load-on-demand functionality
+1. A bit of coding agents to fill in some gaps in the Julia linear solver ecosystem for our particular usecase
 
+## How does a reservoir simulator work?
 
-## The parts of a reservoir simulator
+Modern reservoir simulators predominantly use a fully or partially implicit scheme for solving the governing equations. For brevity, we will limit our selves to the fully implicit case in this blog post. Let us consider a simple two-component, two-phase CO2-H2O model used for CO2 sequestration with thermal effects. We have some reservoir and wells, and the reservoir is divided (discretized) into a number of cells with known volume and connections to neighboring cells. Advancing this sytem through time amounts to solving three conservation equations for the transport in the reservoir:
+
+1. Conservation of CO2 mass present in both phases
+2. Conservation of H2O mass in both phases
+3. Conservation of thermal energy
+
+In addition, there may be a flash-like equation for thermodynamical equilibrium in each cell that determines how the species distribute between the phases, and a number of well equations. The well equations are the same type of conservation laws for the well-bore, coupled to the reservoir, as well as a number of equations for "facility constraints" that determine how the wells are operated. In this case, this would be how much CO2 gets injected at what times through the wells provided that the pressure build up in the well is within reasonable limits.
+
 
 ### Properties
 
@@ -41,13 +50,28 @@ Reservoir simulators running on GPUs is hardly a new development, so the reason 
 ### Convergence criteria, updates and miscellanious
 
 
+
+## Jutul and JutulDarcy
+
 I started what eventually became Jutul.jl back in 2020 with three goals:
 
-1. Learn Julia
-2. Fast automatic differentiation
-3. Write once, execute anywhere
+1. Learn Julia well enough to confidently use it in ongoing projects at SINTEF
+2. Explore the potential for fast automatic differentiation of PDEs using the many AD packages in the Julia ecosystem[^1]
+3. Assess the potential for "write once, execute everywhere" GPU/CPU parallelism that was emerging through the the nascent `KernelAbstractions` package[^2].
+
+### A small example
+As an example, consider how we simulate geological sequestration of CO2.
+
+
+GPUs have a lot of threads and memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "number-like" things. In the Julia world, these are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. The design of the code was written with these restrictions of GPUs in mind.
+
 
 The KA code was eventually decided to be too brittle to keep maintaing.
+
+The emphasis in JutulDarcy has so far been to be able to get high performance
+
+
+
 
 
  and potentially in the future in Apple Metal
@@ -64,4 +88,6 @@ The KA code was eventually decided to be too brittle to keep maintaing.
 
 ## Hello Sol
 
-[^1]: DARTS uses a model where linearization operators are evaluated on the CPU, but cached and retrieved with numeric differentiation on GPU
+[^1]: There was many, now there
+
+[^2]: [The first release of KernelAbstractions.jl was March 9th in 2020](https://github.com/JuliaGPU/KernelAbstractions.jl/releases/tag/v0.1.0). This is, for other reasons, the start of a period where a lot of people spent time indoors in front of computers.
