@@ -322,7 +322,7 @@ GPUs are not so good at execute heavily branching logic, allocating memory durin
 - The simulator has a rigorous approach where all changing values are stored in a state. This means that we can transfer the entire state of the simulator to and from GPU just by iterating over a list of named arrays. The structure of the simulator after initialization is immutable, making it impossible to have two references to the same state be out of sync.
 - Types parametric and can be specialized for GPU array types without changes.
 
-TODO: Example graph
+![Example graph of reservoir variables for SPE11C. Arrows indicate direction of dependency.](graph_spe11c.png)
 
 The starting point of the GPU implementation was thus a design suitable for transferring to GPUs, but that had not been tested on GPUs outside the linear solver for six years. I had performed a few conceptual tests of running the some of the heavier properties on GPUs during work on the OPM Flow GPU implementation, which essentially was application of `Adapt` to some large constructors. I also did a few tests on our automatic differentiation tests from Jutul.jl to confirm that it was suitable for GPUs for simple heat equation models. We can then go section for section through the required porting work:
 
