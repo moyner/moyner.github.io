@@ -101,6 +101,7 @@ I started what eventually became Jutul.jl and JutulDarcy.jl back in 2020 with th
 
 The initial version of the code contained AD solves for single and multiphase immiscible flow without any wells running on both CPU and GPU. Back in 2020, writing and testing kernels required a working GPU device, and the developer experience for kernel programming was very rough around the edges, with incomprehensible error messages and frequent crashes when launching kernels that gave errors. I made the decision to instead focus on differentiablity and high performance on the CPU. In the main paper ["JutulDarcy.jl - a fully differentiable high-performance reservoir simulator based on automatic differentiation"](https://link.springer.com/article/10.1007/s10596-025-10366-6), the GPU results are limited to the linear solvers for NVIDIA devices via CuSPARSE/AMGX vendor libraries.
 
+
 ### Array-based programming
 
 I spent many years writing efficient MATLAB code. If I permit a generalization, in MATLAB, execution of user code is slow, but the compiler can vectorize many operations to call compiled libraries. Say that we were to evaluate a simplified Brooks-Corey relative permeability $k_r = S^N$ for many saturations. There has been improvements to MATLAB's JIT compiler over the years, but for the longest time the following two code snippets would differ in runtime with a huge number of magnitude:
@@ -309,11 +310,82 @@ end
 ```
 
 
+### Moving Jutul and JutulDarcy to GPUs
 
+GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. Even if we did not exploit it until now, the design of the Jutul was written with these restrictions of GPUs in mind. The main design considerations for Jutul that are relevant for GPUs are:
 
+- Everything uses automatic differentiation, so there is no manual derivatives that need to be specialized by hand for GPUs
+- The state is a struct of arrays rather than a array of structs. This means that Jutul internally stores e.g. all pressures or densities sequentially in memory. For variables like density, the density of the two phases in our example will be right next to each other as a column of a matrix.
+- The dependence between these arrays (primary variables, secondary variables / properties and parameters) is an execution graph that is dynamic, allowing any variable to depend on any other variable, and the simulator can compute both the dependence at the start of simulation.
+- Evaluating properties and equations are mutating functions that update result arrays in place, similar to the relative permeability example above.
+- Equations use statically sized automatic differentiation with a fixed sparsity pattern detected at simulation setup. All updates to the linear system happens in-place.
+- The simulator has a rigorous approach where all changing values are stored in a state. This means that we can transfer the entire state of the simulator to and from GPU just by iterating over a list of named arrays. The structure of the simulator after initialization is immutable, making it impossible to have two references to the same state be out of sync.
+- Types parametric and can be specialized for GPU array types without changes.
 
-GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. Even if we did not exploit it until now, the design of the Jutul was written with these restrictions of GPUs in mind.
+TODO: Example graph
 
+The starting point of the GPU implementation was thus a design suitable for transferring to GPUs, but that had not been tested on GPUs outside the linear solver for six years. I had performed a few conceptual tests of running the some of the heavier properties on GPUs during work on the OPM Flow GPU implementation, which essentially was application of `Adapt` to some large constructors. I also did a few tests on our automatic differentiation tests from Jutul.jl to confirm that it was suitable for GPUs for simple heat equation models. We can then go section for section through the required porting work:
+
+#### Properties on GPUs
+
+At the outset, properties seemed like the biggest hurdle. JutulDarcy has a large number of secondary variables that cover geothermal, compositional, blackoil, tracers and enhanced oil recovery. Let us take as example one of the CO2-brine mixing density properties that implements the correlation from _Density of aqueous solutions of CO2_ by J.E. Garcia, 2001:
+
+```julia
+struct BrineCO2MixingDensities{T} <: AbstractCompositionalDensities
+    tab::T
+    coeffs::NTuple{4, Float64}
+end
+
+function BrineCO2MixingDensities(tab::T; coefficients = (37.51, −9.585e−2, 8.74e−4, −5.044e−7)) where T
+    return BrineCO2MixingDensities{T}(tab, coefficients)
+end
+
+@jutul_secondary function update_density!(rho, rho_def::BrineCO2MixingDensities, model::SimulationModel{D, S}, Pressure, Temperature, LiquidMassFractions, ix) where {D, S<:CompositionalSystem}
+    c1, c2, c3, c4 = rho_def.coeffs
+    sys = model.system
+    l, v = phase_indices(sys)
+    for i in ix
+        p = Pressure[i]
+        T = Temperature[i]
+        X_co2 = LiquidMassFractions[2, i]
+        rho_h2o_pure, rho_co2 = rho_def.tab(p, T)
+        rho_brine = co2_brine_mixture_density(T, c1, c2, c3, c4, rho_h2o_pure, X_co2)
+        rho[v, i] = rho_co2
+        rho[l, i] = rho_brine
+    end
+end
+
+function co2_brine_mixture_density(T, c1, c2, c3, c4, rho_h2o_pure, X_co2)
+    T -= 273.15 # Relation is in C, input is in Kelvin
+    vol_co2 = 1e−6*(c1 + c2*T + c3*T^2 + c4*T^3)
+    rho_liquid_co2_pure = 44.01e-3/vol_co2
+    X_h2o = 1.0 - X_co2
+    # Linear volume mixing rule
+    vol = X_co2/rho_liquid_co2_pure + X_h2o/rho_h2o_pure
+    # Return as density
+    return 1.0/vol
+end
+```
+
+This is a fairly complicated function that encodes a relationship between inputs (Pressure, Temperature, LiquidMassFractions) and the density output for compositional models. The definition has an internal table for pure phase properties (i.e. brine without CO2, CO2 without vaporized water) that it evaluates. Before the brine density is written to the return array, it is corrected to account for the dissolved CO2 mass fraction.
+
+To get this running on the GPU, two changes were needed. I had to add an `Adapt` call to automatically generate transfers to GPU, and I had to manually adapt the interpolation type:
+```julia
+# In JutulDarcy
+Adapt.@adapt_structure BrineCO2MixingDensities
+# In Jutul
+function Adapt.adapt_structure(to, interpolant::BilinearInterpolant)
+    return BilinearInterpolant(
+        Adapt.adapt(to, interpolant.X),
+        Adapt.adapt(to, interpolant.Y),
+        Adapt.adapt(to, interpolant.F),
+        Adapt.adapt(to, interpolant.lookup_x),
+        Adapt.adapt(to, interpolant.lookup_y)
+    )
+end
+```
+
+That's it! Once I had a working approach for porting individual properties, I set up a small test harness and let Codex with Sol 5.6 work for a few hours fixing and testing the remaining property evaluations during the weekend while I did some carpentry around the house (at least I have a backup career if the coding agents take over completely).
 
 ### A small example
 As an example, consider how we simulate geological sequestration of CO2.
