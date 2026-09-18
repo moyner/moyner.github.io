@@ -396,39 +396,25 @@ The model equations were also an exercise in using `Adapt`. In addition, I let S
 
 These functions were straightforward to transfer to GPUs. Several fused for-loops that computed several things at once had to be cleaned up. In my opinion, adding GPU support reduced the complexity of this part of the code.
 
-### Linear solvers
+### Linear solvers on GPUs
 
-### Updates
+I have had the GPU implementation on my TODO-list for a long time. The largest barrier was always the linear solver part. JutulDarcy uses a mixture of `hypre` (which has Julia bindings for CPU/MPI and is hassle-free to bundle), a hand-written block ILU(0) and standard Julia sparse functions. If I wanted a vendor-neutral implementation, my options were:
 
+1. Add support for the vendor libraries. We already support CuSPARSE and AMGX for CUDA, and similar implementations are available for AMDGPU. However, AMGX is not actively maintained, only builds on Linux and the performance is not as good as one would hope from a native GPU solver.
+2. Build support for `hypre` with different GPU backends, and add this support to the Julia package. This definitely doable and still on my TODO list, but this only gives us AMG and a scalar ILU(0).
+3. Write our own AMG and preconditioner library from scratch using KernelAbstractions as the execution model.
 
-### A small example
-As an example, consider how we simulate geological sequestration of CO2.
+One problem with reservoir simulation is that the linear solver does a lot of repeat work for successive solves of "almost" the same linear system, which is not well supported in the open source AMG solvers. I have written a fair number of simple AMG codes on CPU before, but I was a bit hesitant to do this myself. Existing libraries, like hypre, have been hardened over decades. However, after thinking a bit about my options, I saw that there was an opportunity to make a limited library that:
 
+- Focused on reuse of hierarchies and memory
+- Was limited to scalar AMG with the most useful coarsening variants
+- Works on single processor (i.e. no multi-node or multi-GPU support)
 
+This has been an on-and-off project for me. The first attempt can be found in the form of [Draugr.jl](https://github.com/SINTEF-agentlab/Draugr.jl) which was intended primarily to test the capabilities of agents, as no code was written by humans in that project. The performance was quite good, but after many agent sessions the code was far too expansive to integrate directly into JutulDarcy. So I set up a test harness with exported matrices, wrote a specification with a proposed API and let Sol work for several sessions. The resulting library is quite small - about 4000 lines of code compared to Draugr's 12290 lines of code. As the interface to the simulator is quite limited and easy to test, I am comfortable letting an agent work on this part without going over every line of code. In the future, it is likely that we can switch to builds of hypre, and the code still has the option to use vendor libraries, but having a Julia native preconditioner means that we can automatically generalize support of JutulDarcy to any other backend that may appear in the future [^3]
 
-
-The KA code was eventually decided to be too brittle to keep maintaing.
-
-The emphasis in JutulDarcy has so far been to be able to get high performance
-
-
-
-
-
- and potentially in the future in Apple Metal
-##
-
-## Motivation
-
-
-
-
-- We had code already
-- Primary variables, equations, etc, discuss
-- Adapt
-
-## Hello Sol
 
 [^1]: There was many, now there
 
 [^2]: [The first release of KernelAbstractions.jl was March 9th in 2020](https://github.com/JuliaGPU/KernelAbstractions.jl/releases/tag/v0.1.0). This is, for other reasons, the start of a period where a lot of people spent time indoors in front of computers.
+
+[^3]: Like Metal.jl, which will require work on using 32 bits types throughout the code.
