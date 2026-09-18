@@ -29,12 +29,12 @@ Running models on GPUs can be a major performance benefit, as modern GPUs offer 
 
 There are a few pain points when considering GPU solves for reservoir simulation. As a single code often supports many different types of governing equations that have their own highly performance sensitive kernels for residual and Jacobians, porting to GPU can be a highly invasive process that touches large parts of the code. There is a risk of having separate GPU implementations that live side-by-side with the CPU version and has to be maintained in sync, or to end up with highly GPU-specialized code that is hard to manage and may have worse performance on CPU. NVIDIA is the most popular vendor for GPUs and is programmed by using the the proprietary CUDA library, so you may then naturally run into issues when you want to run on e.g. an AMD card - or some future accelerator that could appear.
 
-This blog post is then not about the great performance offered by GPUs, which are for the most part a given, but rather how reservoir simulation can be executed in a fast manner on GPUs without making the code a "GPU-ified" code that has a lot of complexity and is tied to one particular vendor or execution mode. The ingredients we are going to use are:
+This blog post is not about the great performance offered by GPUs, which is well established in the literature, but rather how reservoir simulation can be executed in a fast manner on GPUs without making the code a "GPU-ified" code that has a lot of complexity and is tied to one particular vendor or execution mode. The ingredients we are going to use are:
 
 1. The Jutul+JutulDarcy framework for automatic differentiation
 1. KernelAbstractions for vendor-neutral parallelization
 1. Julia package extensions for load-on-demand functionality
-1. A bit of coding agents to fill in some gaps in the Julia linear solver ecosystem for our particular usecase
+1. A bit of coding agents to fill in some gaps in the Julia linear solver ecosystem for our particular use case
 
 ## How does a reservoir simulator work?
 
@@ -48,7 +48,7 @@ Modern reservoir simulators predominantly use a fully or partially implicit sche
 
 My notation skips over a lot of complexity, but the simulation itself can be divided into these five steps, with a time-stepping loop around it that handles time-step cuts, changes in controls, and so on.
 
-### A small exampe
+### A small example
 
 Let us consider a simple two-component, two-phase CO2-H2O model used for CO2 storage by geological sequestration (CCS) with thermal effects. An engineer would create a 3D model of an saline aquifer with certain geological properties, place one or more wells, and then simulate injection of CO2 for a time period of 30 days or 10,000 years to look at how the CO2 distributes in the aquifer model and how the pressure of the system changes.
 
@@ -66,25 +66,29 @@ In addition, there may be closure equations for thermodynamical equilibrium in e
 
 ### Properties
 
-If we now move from the high mathematical vantage points of governing equations to property evaluation, the situation becomes much more messy. Reservoir simulation is (perhaps uniquely) very data-intensive in terms of defining simulation problems. Any of the above applications have a large number of choices for different constitutive relationships, and the relationships themselves are often quite mathematically complex. For example, evaluating densities and phase distributions of species may require the solution of a local thermodynamic equilibrium, and there are countless options for different equations of state that require different solution strategies. Another example is the evaluation of relative permeabilities where you may have different choices for endpoint scaling, hysteresis, three-phase model and relative permeabilities for each phase pair. 
+If we now move from the high mathematical vantage points of governing equations to property evaluation, the situation becomes much more messy. Reservoir simulation is (perhaps uniquely) very data-intensive in terms of defining simulation problems. Any of the above applications have a large number of choices for different constitutive relationships, and the relationships themselves are often quite mathematically complex. A few examples for our CCS example:
 
-This is the part that is potentiallty very ugly when p
+- Relative permeabilities model the change to Darcy's law under multiphase flow conditions. There are several types of relative permeability end-point scaling, hysteresis models. Typically, these functions are also different depending on the rock type a given cell is taken from.
+- Evaluating phase distributions of species may require the solution of a local thermodynamic equilibrium, and there are countless options for different equations of state that require different solution strategies. This includes the black-oil model, equilibrium constant flashes (K-values) with dependence on state variables and different types of equations of state, all of which may be used to model dissolution of CO2 under changing conditions.
+- The density of the mixtures depend on the pressure, temperature and compositions in each cell. This may be provided by an equation of state, or different correlations for each phase.
 
-
-These are evaluated per cell
-
-
-The largest cost in a forward simulation is typically the linear solver and this is a fairly self-contained
+In terms of GPU execution, the good news is that properties are evaluated cell-by-cell and as each entry is independent from the others, they are massively parallel. The bad news is that there are an enormous number of them, with varying dependency relationships. In terms of number of line of code, this is usually the largest part of a reservoir simulator.
 
 ### Equations
 
+The equations take the properties and variables and produce the residual equations, and their Jacobians. Practical reservoir simulation overwhelmingly uses two-point finite-volume schemes. The conservation equations for the reservoir are made up of the evaluation of a cell-wise accumulation term and the numerical fluxes between pairs of cells that share an interface. The residual equations, if cell-wise values are computed, are also independent of each other and suitable for parallelism, with the largest wrinkle being the simultanous computation of residual and Jacobian. We must also at this stage compute the coupling terms that connect the wells to the reservoir, which are conceptually similar to fluxes, albeit with yet another implementation per type of governing equation.
+
+### Convergence
+
+Checking the convergence of the system requires parallel reductions (e.g. a sum or maximum value) that are straightforward to parallelize. The convergence criteria can in practice be complicated expressions that depend on the model type. For our CCS problem, we would check that the well equations are solved in the Inf norm, that the sum of mass balance over all cells for each component is sufficiently small, and that the scaled maximum error is small (less than $10^-3$ in all cells).
+
 ### Linear solvers
 
-Reservoir simulators running on GPUs is hardly a new development, so the reason for this blog post is instead to highlight that this port was done without altering the implementations of equations themselves. It is also 
+Solving the resulting linear systems is typically done using Krylov-subspace method accelerated either with a pure smoother like ILU(0), or with a constrained-pressure-residual (CPR) preconditioner that combines algebraic multigrid (AMG) for the pressure with a second-stage smoother. This amounts to matrix-vector products (which are parallel for compressed sparse row (CSR) matrices), AMG cycles with diagonal smoothers (which are parallel) and triangular solves (which can be colored and parallelized).
 
+### Updates
 
-### Convergence criteria, updates and miscellanious
-
+Finally, the primary variables are updated for each cell. This is trivially parallel, but there is again specific logic to each variable. For instance, pressure updates must be limited in both absolute and relative magnitude, saturation and composition fractions  after updates must be projected to sum to one and black-oil variable switching requires careful change of variable sets across phase boundaries.
 
 
 ## Jutul and JutulDarcy
