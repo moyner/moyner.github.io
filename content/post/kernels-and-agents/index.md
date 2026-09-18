@@ -27,13 +27,19 @@ This blog post is then not about the great performance offered by GPUs, which ar
 
 ## How does a reservoir simulator work?
 
-Modern reservoir simulators predominantly use a fully or partially implicit scheme for solving the governing equations. For brevity, we will limit our selves to the fully implicit case in this blog post. Let us consider a simple two-component, two-phase CO2-H2O model used for CO2 sequestration with thermal effects. We have some reservoir and wells, and the reservoir is divided (discretized) into a number of cells with known volume and connections to neighboring cells. Advancing this sytem through time amounts to solving three conservation equations for the transport in the reservoir:
+Modern reservoir simulators predominantly use a fully or partially implicit scheme for solving the governing equations. For brevity, we will limit our selves to the fully implicit case in this blog post.
 
-1. Conservation of CO2 mass present in both phases
-2. Conservation of H2O mass in both phases
-3. Conservation of thermal energy
+Let us consider a simple two-component, two-phase CO2-H2O model used for CO2 storage by geological sequestration (CCS) with thermal effects. We have some reservoir and wells, and the reservoir is divided (discretized) into a number of cells with known volume and connections to neighboring cells. The problem is then to predict how the species and energy moves, given operational constraints (a policy for injection of CO2) for a time period that could be 30 days or 10,000 years depending on the questions an engineer has.
 
-In addition, there may be a flash-like equation for thermodynamical equilibrium in each cell that determines how the species distribute between the phases, and a number of well equations. The well equations are the same type of conservation laws for the well-bore, coupled to the reservoir, as well as a number of equations for "facility constraints" that determine how the wells are operated. In this case, this would be how much CO2 gets injected at what times through the wells provided that the pressure build up in the well is within reasonable limits.
+### Governing equations
+
+Advancing our CCS system through time amounts to solving three conservation equations for the transport in the reservoir:
+
+1. Conservation of CO2 mass present in both phases in each cell
+2. Conservation of H2O mass in both phases in each cell
+3. Conservation of thermal energy in each cell as the sum of internal energy of the rock and the fluid phases present in the voidspace of the rock
+
+In addition, there may be a flash-like equation for thermodynamical equilibrium in each cell that determines how the species distribute between the phases, and a number of well equations. The well equations are the same type of conservation laws for the well-bore, coupled to the reservoir, as well as a number of equations for "facility constraints" that determine how the wells are operated. In this case, this would be how much CO2 gets injected at what times through the wells provided that the pressure build up in the well is within reasonable limits. The equations for geothermal energy, oil and gas recovery, hydrogen storage and other applications are from this vantage point very similar - the number of components and phases may change, but the types of equations are very much the same.
 
 
 ### Properties
