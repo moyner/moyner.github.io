@@ -8,6 +8,7 @@ categories:
     - Julia
     - JutulDarcy
 weight: 1       # You can add weight to some posts to override the default sorting (date descending)
+math: true
 ---
 
 ## A bit of background
@@ -90,20 +91,59 @@ Solving the resulting linear systems is typically done using Krylov-subspace met
 
 Finally, the primary variables are updated for each cell. This is trivially parallel, but there is again specific logic to each variable. For instance, pressure updates must be limited in both absolute and relative magnitude, saturation and composition fractions  after updates must be projected to sum to one and black-oil variable switching requires careful change of variable sets across phase boundaries.
 
-
 ## Jutul and JutulDarcy
 
-I started what eventually became Jutul.jl back in 2020 with three goals:
+I started what eventually became Jutul.jl and JutulDarcy.jl back in 2020 with three goals:
 
-1. Learn Julia well enough to confidently use it in ongoing projects at SINTEF
-2. Explore the potential for fast automatic differentiation of PDEs using the many AD packages in the Julia ecosystem[^1]
-3. Assess the potential for "write once, execute everywhere" GPU/CPU parallelism that was emerging through the the nascent `KernelAbstractions` package[^2].
+1. Learn Julia well enough to confidently use it in ongoing projects at SINTEF _(a success! I now use Julia a lot, as do many of my colleagues.)_
+2. Explore the potential for fast automatic differentiation of PDEs using the many AD packages in the Julia ecosystem[^1] _(definitely a success, even if we had to write a lot of code to get there)_
+3. Assess the potential for "write once, execute everywhere" GPU/CPU parallelism that was emerging through the the nascent `KernelAbstractions` package[^2] _(...it took six years)_
+
+The initial version of the code contained AD solves for single and multiphase immiscible flow without any wells running on both CPU and GPU. Back in 2020, writing and testing kernels required a working GPU device, and the developer experience for kernel programming was very rough around the edges, with incomprehensible error messages and frequent crashes when launching kernels that gave errors. I made the decision to instead focus on differentiablity and high performance on the CPU. In the main paper ["JutulDarcy.jl - a fully differentiable high-performance reservoir simulator based on automatic differentiation"](https://link.springer.com/article/10.1007/s10596-025-10366-6), the GPU results are limited to the linear solvers for NVIDIA devices via CuSPARSE/AMGX vendor libraries.
+
+### Array-based programming
+
+I spent many years writing efficient MATLAB code. If I permit a generalization, in MATLAB, execution of user code is slow, but the compiler can vectorize many operations to call compiled libraries. There has been improvements to MATLAB's JIT compiler over the years, but for the longest time the following two code snippets would differ in runtime with a huge number of magnitude:
+
+#### Looping MATLAB
+
+```matlab
+a = rand(N, N)
+c = zeros(N, N)
+for i = 1:N
+    for j = 1:N
+        c(i, j) = a(i, j)^2
+    end
+end
+```
+
+#### Vectorized MATLAB
+
+```matlab
+a = rand(N, N)
+% Vectorized code
+b = a.^2
+```
+
+Writing fast MATLAB code was an exercise of:
+
+1. Avoiding loop.
+2. If you cannot avoid a loop, loop over the smallest index
+3. Angrily write a MEX C-extension to get a fast loop when I could not do 1 and 2.
+
+Julia (and most other compiled languages) allows you to write fast loops, and you are generally free to use either loops or vectorized expressions based on personal preference. For me, the flexibility of Julia has been a joy to work with -- towards the end of my post-doc in 2018 I was spending far too much on point 3 in the above list over actually writing application code.
+
+#### GPU programming in Julia
+
+Going to GPU programming, however, means that you are not allowed to do scalar indexing on the CPU if you want fast code. In practical terms, this means that you either write kernels that perform the same bit of code many times in parallel, or you use vectorized functions on GPU-resident arrays to execute. It is was a bit of a "back to the future"-moment where I had to go back to the old MATLAB mental model for what code was performance safe.
+
+GPUs have a lot of threads and memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "number-like" things. In the Julia world, these are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. The design of the code was written with these restrictions of GPUs in mind.
+
 
 ### A small example
 As an example, consider how we simulate geological sequestration of CO2.
 
 
-GPUs have a lot of threads and memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "number-like" things. In the Julia world, these are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. The design of the code was written with these restrictions of GPUs in mind.
 
 
 The KA code was eventually decided to be too brittle to keep maintaing.
