@@ -103,26 +103,24 @@ The initial version of the code contained AD solves for single and multiphase im
 
 ### Array-based programming
 
-I spent many years writing efficient MATLAB code. If I permit a generalization, in MATLAB, execution of user code is slow, but the compiler can vectorize many operations to call compiled libraries. There has been improvements to MATLAB's JIT compiler over the years, but for the longest time the following two code snippets would differ in runtime with a huge number of magnitude:
+I spent many years writing efficient MATLAB code. If I permit a generalization, in MATLAB, execution of user code is slow, but the compiler can vectorize many operations to call compiled libraries. Say that we were to evaluate a simplified Brooks-Corey relative permeability $k_r = S^N$ for many saturations. There has been improvements to MATLAB's JIT compiler over the years, but for the longest time the following two code snippets would differ in runtime with a huge number of magnitude:
 
 #### Looping MATLAB
 
 ```matlab
-a = rand(N, N)
-c = zeros(N, N)
+s = rand(N, 1)
+kr = zeros(N, 1)
 for i = 1:N
-    for j = 1:N
-        c(i, j) = a(i, j)^2
-    end
+    kr(i) = s(i)^2
 end
 ```
 
 #### Vectorized MATLAB
 
 ```matlab
-a = rand(N, N)
+s = rand(N, 1)
 % Vectorized code
-b = a.^2
+kr = s.^2
 ```
 
 Writing fast MATLAB code was an exercise of:
@@ -131,13 +129,33 @@ Writing fast MATLAB code was an exercise of:
 2. If you cannot avoid a loop, loop over the smallest index
 3. Angrily write a MEX C-extension to get a fast loop when I could not do 1 and 2.
 
-Julia (and most other compiled languages) allows you to write fast loops, and you are generally free to use either loops or vectorized expressions based on personal preference. For me, the flexibility of Julia has been a joy to work with -- towards the end of my post-doc in 2018 I was spending far too much on point 3 in the above list over actually writing application code.
+Julia (and most other compiled languages) allows you to write fast loops, and you are generally free to use either loops or vectorized expressions based on personal preference. For me, the flexibility of Julia has been a joy to work with -- towards the end of my post-doc in 2018 I was spending far too much on point 3 in the above list over actually writing application code. For instance, if we take the same function and port it to Julia, there is no practical difference between these two forms:
+
+#### Looping Julia
+
+```julia
+s = rand(N)
+kr = zeros(N)
+for i in eachindex(s, kr)
+    kr[i] = s[i]^2
+end
+```
+
+#### Vectorized Julia
+
+```julia
+s = rand(N)
+kr = s.^2
+```
+
 
 #### GPU programming in Julia
 
-Going to GPU programming, however, means that you are not allowed to do scalar indexing on the CPU if you want fast code. In practical terms, this means that you either write kernels that perform the same bit of code many times in parallel, or you use vectorized functions on GPU-resident arrays to execute. It is was a bit of a "back to the future"-moment where I had to go back to the old MATLAB mental model for what code was performance safe.
+Going to GPU programming, however, means that you are not allowed to do scalar indexing on the CPU if you want fast code. In practical terms, this means that you either write kernels that perform the same bit of code many times in parallel, or you use vectorized functions on GPU-resident arrays to execute. It is was a bit of a "back to the future"-moment where I had to go back to the old MATLAB mental model for what code was performance safe. Fortunately for me, the GPU ecosystem has improved significantly since 2020, both in terms of capability and usability. The currently 
 
-GPUs have a lot of threads and memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "number-like" things. In the Julia world, these are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. The design of the code was written with these restrictions of GPUs in mind.
+
+
+GPUs have a lot of threads and memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "number-like" things. In the Julia world, these are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. Even if we did not exploit it until now, the design of the Jutul was written with these restrictions of GPUs in mind.
 
 
 ### A small example
