@@ -29,6 +29,12 @@ This blog post is then not about the great performance offered by GPUs, which ar
 
 Modern reservoir simulators predominantly use a fully or partially implicit scheme for solving the governing equations. For brevity, we will limit our selves to the fully implicit case in this blog post.
 
+
+1. Evaluate _properties_ based on current primary variables $\mathbf{x}$.
+2. Compute the residual equations $\mathbf{r}$ and the corresponding Jacobian matrix from the evaluated properties and current primary variables
+3. Check convergence by checking the magnitude of $\mathbf{r}$ since equations on residual form are solved when $\mathbf{r} = \mathbf{0}$
+4. Solve some linear system to obtain an update $\Delta \mathbf{x} = -J^{-1}\mathbf{r}$ to the primary variables.
+
 Let us consider a simple two-component, two-phase CO2-H2O model used for CO2 storage by geological sequestration (CCS) with thermal effects. We have some reservoir and wells, and the reservoir is divided (discretized) into a number of cells with known volume and connections to neighboring cells. The problem is then to predict how the species and energy moves, given operational constraints (a policy for injection of CO2) for a time period that could be 30 days or 10,000 years depending on the questions an engineer has.
 
 ### Governing equations
@@ -41,8 +47,10 @@ Advancing our CCS system through time amounts to solving three conservation equa
 
 In addition, there may be a flash-like equation for thermodynamical equilibrium in each cell that determines how the species distribute between the phases, and a number of well equations. The well equations are the same type of conservation laws for the well-bore, coupled to the reservoir, as well as a number of equations for "facility constraints" that determine how the wells are operated. In this case, this would be how much CO2 gets injected at what times through the wells provided that the pressure build up in the well is within reasonable limits. The equations for geothermal energy, oil and gas recovery, hydrogen storage and other applications are from this vantage point very similar - the number of components and phases may change, but the types of equations are very much the same.
 
-
 ### Properties
+
+If we now move from the high mathematical vantage points of governing equations to property evaluation, the situation becomes much more messy. Reservoir simulation is (perhaps uniquely) very data-intensive in terms of defining simulation problems. Any of the above applications have a large number of choices for different constitutive relationships, and the relationships themselves are often quite mathematically complex. For example, evaluating densities and phase distributions of species may require the solution of a local thermodynamic equilibrium, and there are countless options for different equations of state that require different solution strategies. Another example is the evaluation of relative permeabilities where you may have different choices for endpoint scaling, hysteresis, three-phase model and relative permeabilities for each phase pair. These are evaluated per cell
+
 
 The largest cost in a forward simulation is typically the linear solver and this is a fairly self-contained
 
