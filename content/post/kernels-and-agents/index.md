@@ -386,7 +386,12 @@ function Adapt.adapt_structure(to, interpolant::BilinearInterpolant)
 end
 ```
 
-That's it! Note that there are no changes to the functions that define the physics behavior! Once I had a working approach for porting individual properties, I set up a small test harness and let Codex with Sol 5.6 work for a few hours fixing and testing the remaining property evaluations during the weekend while I did some carpentry around the house (at least I have a backup career if the coding agents take over completely).
+That's it! Note that there are no changes to the functions that define the mathematical model for the density. The required changes are only applied to the *types* and not to the *functions* has two important implications:
+
+1. As there are no changes to the functional form, we do not have to force modellers to write relationships in a special manner for it to run on GPUs.
+2. Verification of a GPU port is much easier when there are no changes to the functions themselves. If rewriting an expression for GPU introduces subtle changes in behavior, the simulator will still happily simulate the wrong answer, but changes to types will result in compilation errors.
+
+Once I had a working approach for porting individual properties, I set up a small test harness and let Codex with Sol 5.6 work for a few hours fixing and testing the remaining property evaluations during the weekend while I did some carpentry around the house (at least I have a backup career if the coding agents take over completely).
 
 #### Equations on GPUs
 
