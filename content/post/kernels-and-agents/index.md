@@ -395,7 +395,7 @@ Once I had a working approach for porting individual properties, I set up a smal
 
 #### Equations on GPUs
 
-The model equations were also an exercise in using `Adapt`. In addition, I let Sol port one of my old codes for fuzing equation evaluation with assembly. This code was not very useful in serial, but on GPU it saves substantial memory. Many parts of the code had to be slightly modified to handle asynchronous operations and transfer to and from GPUs during input and output, but there were no changes to the outer API or the governing equations themselves.
+The model equations were also an exercise in using `Adapt`. In addition, I let Sol port one of my old codes for fuzing equation evaluation with assembly. This code was not very useful on CPU, where memory is abundant, but on GPU it saves substantial memory. Many parts of the code had to be slightly modified to handle asynchronous operations and transfer to and from GPUs during input and output, but there were no changes to the outer API or the governing equations themselves. As with the properties, this means that the verification process is limited to checking if the code compiles and runs rather than going over every single functional expression.
 
 ### Convergence and updates on GPUs
 
