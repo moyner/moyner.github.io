@@ -276,9 +276,11 @@ and contain no references to other values, can be used in GPU kernels.
 For more information, see the `Base.isbitstype` function.
 ```
 
-This type contains a `Vector` - a standard Julia type that does not live in GPU memory! Whi is this an error? GPUs have a lot of threads and internal memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "plain" things that reside on the GPU ("device"). In the Julia world, these "plain" types are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. In theory, we could have compiled a kernel for this - but every time it accessed an element of the exponents, it would have to do a round trip to the regular memory, which is very slow.
+This type contains a `Vector` - a standard Julia type that does not live in GPU memory! Why is this an error? GPUs have a lot of threads and internal memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "plain" things that reside on the GPU ("device"). In the Julia world, these "plain" types are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. In theory, we could have compiled a kernel for this - but every time it accessed an element of the exponents, it would have to do a round trip to the regular memory, which is very slow when compared to accessing device-resident data.
 
-But how do we convert the type itself? The answer lies in the `Adapt.jl` package. First, we must make the type parametric so that it can hold any kind of storage for the exponents (essentially similar to a templated class in C++). We then automatically generate an adapt function that takes care of sending the non-isbits-types of our type to GPU memory:
+The problem is then not the function, but rather the location of the memory used by the type. But how do we make the type itself store data in device memory? The answer lies in the `Adapt.jl` package. First, we must make the type parametric so that it can hold any kind of storage for the exponents. Parametric types are essentially very similar to templated classes in C++, where more than one type can be generated from the same human-readable definition (and just in like C++, overusing parametric types can create stack traces that are not readable for humans).
+
+Once the type is parametric, we can automatically generate an adapt function that takes care of sending the non-isbits-types of our type to GPU memory:
 
 ```julia
 using Adapt
@@ -309,6 +311,7 @@ function Adapt.adapt_structure(to, krdef::SimpleRelPermGeneric)
 end
 ```
 
+The real strength of Adapt is that it is independent of the storage types themselves. Our type and function pair can now be run on a multitude of different array types, including other types of GPU libraries.
 
 ### Moving Jutul and JutulDarcy to GPUs
 
@@ -403,9 +406,9 @@ These functions were straightforward to transfer to GPUs. Several fused for-loop
 
 ### Linear solvers on GPUs
 
-I have had the GPU implementation on my TODO-list for a long time. The largest barrier was always the linear solver part. JutulDarcy uses a mixture of `hypre` (which has Julia bindings for CPU/MPI and is hassle-free to bundle), a hand-written block ILU(0) and standard Julia sparse functions. If I wanted a vendor-neutral implementation, my options were:
+I have had the GPU implementation on my TODO-list for a long time. The largest barrier was always the linear solver, which usually amounts to a significant amount of the model runtime. JutulDarcy uses a mixture of `hypre` (which has Julia bindings for CPU/MPI and is hassle-free to bundle), a hand-written block ILU(0) and standard Julia sparse functions. If I wanted a vendor-neutral implementation, my options were:
 
-1. Add support for the vendor libraries. We already support CuSPARSE and AMGX for CUDA, and similar implementations are available for AMDGPU. However, AMGX is not actively maintained, only builds on Linux and the performance is not as good as one would hope from a native GPU solver.
+1. Add support for the vendor libraries. We already support CuSPARSE and AMGX for CUDA, and similar implementations are available for AMDGPU [https://rocm.docs.amd.com/projects/rocALUTION/en/develop/what-is-rocalution.html](with the rolls-off-your-tongue name rocALUTION). However, AMGX is not actively maintained, only builds on Linux and the performance is not as good as one would hope from a native GPU solver.
 2. Build support for `hypre` with different GPU backends, and add this support to the Julia package. This definitely doable and still on my TODO list, but this only gives us AMG and a scalar ILU(0).
 3. Write our own AMG and preconditioner library from scratch using KernelAbstractions as the execution model.
 
