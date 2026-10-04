@@ -81,11 +81,11 @@ The equations take the properties and variables and produce the residual equatio
 
 ### Convergence
 
-Checking the convergence of the system requires parallel reductions (e.g. a sum or maximum value) that are straightforward to parallelize. The convergence criteria can in practice be complicated expressions that depend on the model type. For our CCS problem, we would check that the well equations are solved in the Inf norm, that the sum of mass balance over all cells for each component is sufficiently small, and that the scaled maximum error is small (less than $10^-3$ in all cells).
+Checking the convergence of the system requires parallel reductions with scaling(e.g. a sum or maximum value) that are straightforward to parallelize. The convergence criteria can in practice be complicated expressions that depend on the model type. For our CCS problem, we would check that the well equations are solved in the Inf norm, that the sum of mass balance over all cells for each component is sufficiently small, and that the scaled maximum error is small (less than $10^{-3}$ in all cells).
 
 ### Linear solvers
 
-Solving the resulting linear systems is typically done using Krylov-subspace method accelerated either with a pure smoother like ILU(0), or with a constrained-pressure-residual (CPR) preconditioner that combines algebraic multigrid (AMG) for the pressure with a second-stage smoother. This amounts to matrix-vector products (which are parallel for compressed sparse row (CSR) matrices), AMG cycles with diagonal smoothers (which are parallel) and triangular solves (which can be colored and parallelized).
+Solving the resulting linear systems is typically done using Krylov-subspace method accelerated either with a pure smoother like ILU(0), or with a constrained-pressure-residual (CPR) preconditioner that combines algebraic multigrid (AMG) for the pressure with a second-stage smoother. This amounts to matrix-vector products (which are parallel for compressed sparse row (CSR) matrices), inner products and norms (which are parallel reductions similar to the convergence criteria), AMG cycles with diagonal smoothers (which are parallel) and triangular solves (which can be colored and parallelized).
 
 ### Updates
 
@@ -355,8 +355,8 @@ end
     end
 end
 
-function co2_brine_mixture_density(T, c1, c2, c3, c4, rho_h2o_pure, X_co2)
-    T -= 273.15 # Relation is in C, input is in Kelvin
+function co2_brine_mixture_density(T_kelvin, c1, c2, c3, c4, rho_h2o_pure, X_co2)
+    T = T_kelvin - 273.15 # Relation is in C, input is in Kelvin
     vol_co2 = 1e−6*(c1 + c2*T + c3*T^2 + c4*T^3)
     rho_liquid_co2_pure = 44.01e-3/vol_co2
     X_h2o = 1.0 - X_co2
@@ -410,8 +410,9 @@ One problem with reservoir simulation is that the linear solver does a lot of re
 - Was limited to scalar AMG with the most useful coarsening variants
 - Works on single processor (i.e. no multi-node or multi-GPU support)
 
-This has been an on-and-off project for me. The first attempt can be found in the form of [Draugr.jl](https://github.com/SINTEF-agentlab/Draugr.jl) which was intended primarily to test the capabilities of agents, as no code was written by humans in that project. The performance was quite good, but after many agent sessions the code was far too expansive to integrate directly into JutulDarcy. So I set up a test harness with exported matrices that allowed the code to run tests against hypre and our own smoothers, wrote a specification with a proposed API and let Sol work for several sessions. The resulting library is quite small - about 4000 lines of code compared to Draugr's 12290 lines of code. The AMG is very similar to the best performing options from hypre, to the extent that I would consider the AMG implementation as a derived work of hypre. As the interface to the simulator is quite limited and easy to test, I am comfortable letting an agent work on this part without going over every line of code. In the future, it is likely that we can switch to builds of hypre, and the code still has the option to use vendor libraries, but having a Julia native preconditioner means that we can automatically generalize support of JutulDarcy to any other backend that may appear in the future [^3]
+This has been an on-and-off project for me. The first attempt can be found in the form of [Draugr.jl](https://github.com/SINTEF-agentlab/Draugr.jl) which was intended primarily to test the capabilities of agents, as no code was written by humans in that project. The performance was quite good, but after many agent sessions the code was far too expansive to integrate directly into JutulDarcy. So I set up a test harness with exported matrices that allowed the code to run tests against hypre and our own smoothers, wrote a specification with a proposed API and let Sol work for several sessions. The resulting library is quite small - about 4000 lines of code compared to Draugr's 12290 lines of code. The AMG is very similar to the best performing options from hypre, to the extent that I would consider the AMG implementation as a derived work of hypre.
 
+The nice thing about preconditioners is that it is very easy to verify their performance by checking if the application of the preconditioner $P$ gives a new update $x = P^{-1}b$ that reduces the linear residual $\| Ax - b \|_2$ at a reasonable speed for sample systems $A$. As the interface to the simulator is quite limited and easy to test, I am comfortable letting an agent work on this part without going over every line of code. In the future, it is likely that we can switch to builds of hypre for different devices. Jutul also has the option to use vendor libraries where preconditioners exist, but having a Julia native preconditioner means that we can automatically generalize support of JutulDarcy to any other backend that may appear in the future [^3]
 
 [^1]: There was many, now there
 
