@@ -30,7 +30,7 @@ I started what eventually became Jutul.jl (automatic differentiation-based nonli
 
 1. Learn Julia well enough to confidently use it in ongoing projects at SINTEF _(a success! I now use Julia a lot, as do many of my colleagues.)_
 2. Explore the potential for fast automatic differentiation of PDEs using the many AD packages in the Julia ecosystem[^1] _(definitely a success, even if we had to write a lot of code to get there)_
-3. Assess the potential for "write once, execute everywhere" GPU/CPU parallelism that was emerging through the the nascent `KernelAbstractions` package[^2] _(...it took six years, but we got there in the end...)_
+3. Assess the potential for "write once, execute everywhere" GPU/CPU parallelism that was emerging through the then nascent `KernelAbstractions` package[^2] _(...it took six years, but we got there in the end...)_
 
 The initial version of the code contained AD solves for single and multiphase immiscible flow without any wells running on both CPU and GPU. Back in 2020, writing and testing kernels required a working GPU device, and the developer experience for kernel programming was very rough around the edges, with incomprehensible error messages and frequent crashes when launching kernels that gave errors. I made the decision to instead focus on differentiablity and high performance on the CPU. In the main paper ["JutulDarcy.jl - a fully differentiable high-performance reservoir simulator based on automatic differentiation"](https://link.springer.com/article/10.1007/s10596-025-10366-6), the GPU results are limited to the linear solvers for NVIDIA devices via CuSPARSE/AMGX vendor libraries. These do give noticable performance benefits, but having only the linear solver on GPU means that there is a lot of memory traffic between the device and host during each solve.
 
@@ -49,7 +49,7 @@ This blog post is not about the great performance offered by GPUs, which is well
 
 Running models on GPUs can be a major performance benefit, as modern GPUs offer much higher throughput than CPUs when performing repetitive numerical calculations. Other reservoir simulators that were originally written for CPUs before GPUs for computations was established have moved some or all calculations to GPUs (e.g. Intersect or tNavigator) and several simulators have been developed with the express intent of targeting GPUs. This includes both commerical offerings like Echelon from StoneRidge and research simulators like GEOS that was written from the ground-up for GPUs and DARTS where the operator-based linearization allows fast GPU execution by caching operators that are sparsely evaluated on the CPU.
 
-There are a few pain points when considering GPU solves for reservoir simulation. As a single code often supports many different types of governing equations that have their own highly performance sensitive kernels for residual and Jacobians, porting to GPU can be a highly invasive process that touches large parts of the code. There is a risk of having separate GPU implementations that live side-by-side with the CPU version and has to be maintained in sync, or to end up with highly GPU-specialized code that is hard to manage and may have worse performance on CPU. NVIDIA is the most popular vendor for GPUs and is programmed by using the the proprietary CUDA library, so you may then naturally run into issues when you want to run on e.g. an AMD card, or some future parallel hardware accelerator that isn't on the radar yet.
+There are a few pain points when considering GPU solves for reservoir simulation. As a single code often supports many different types of governing equations that have their own highly performance sensitive kernels for residual and Jacobians, porting to GPU can be a highly invasive process that touches large parts of the code. There is a risk of having separate GPU implementations that live side-by-side with the CPU version and has to be maintained in sync, or to end up with highly GPU-specialized code that is hard to manage and may have worse performance on CPU. NVIDIA is the most popular vendor for GPUs and is programmed by using the proprietary CUDA library, so you may then naturally run into issues when you want to run on e.g. an AMD card, or some future parallel hardware accelerator that isn't on the radar yet.
 
 ## How does a reservoir simulator work?
 
@@ -95,11 +95,11 @@ The equations take the properties and variables and produce the residual equatio
 
 ### Convergence
 
-Checking the convergence of the system requires parallel reductions (e.g. a sum or maximum value) that are straightforward to parallelize. The convergence criteria can in practice be complicated expressions that depend on the model type. For our CCS problem, we would check that the well equations are solved in the Inf norm, that the sum of mass balance over all cells for each component is sufficiently small, and that the scaled maximum error is small (less than $10^-3$ in all cells).
+Checking the convergence of the system requires parallel reductions with scaling(e.g. a sum or maximum value) that are straightforward to parallelize. The convergence criteria can in practice be complicated expressions that depend on the model type. For our CCS problem, we would check that the well equations are solved in the Inf norm, that the sum of mass balance over all cells for each component is sufficiently small, and that the scaled maximum error is small (less than $10^{-3}$ in all cells).
 
 ### Linear solvers
 
-Solving the resulting linear systems is typically done using Krylov-subspace method accelerated either with a pure smoother like ILU(0), or with a constrained-pressure-residual (CPR) preconditioner that combines algebraic multigrid (AMG) for the pressure with a second-stage smoother. This amounts to matrix-vector products (which are parallel for compressed sparse row (CSR) matrices), AMG cycles with diagonal smoothers (which are parallel) and triangular solves (which can be colored and parallelized).
+Solving the resulting linear systems is typically done using Krylov-subspace method accelerated either with a pure smoother like ILU(0), or with a constrained-pressure-residual (CPR) preconditioner that combines algebraic multigrid (AMG) for the pressure with a second-stage smoother. This amounts to matrix-vector products (which are parallel for compressed sparse row (CSR) matrices), inner products and norms (which are parallel reductions similar to the convergence criteria), AMG cycles with diagonal smoothers (which are parallel) and triangular solves (which can be colored and parallelized).
 
 ### Updates
 
@@ -279,9 +279,11 @@ and contain no references to other values, can be used in GPU kernels.
 For more information, see the `Base.isbitstype` function.
 ```
 
-This type contains a `Vector` - a standard Julia type that does not live in GPU memory! Whi is this an error? GPUs have a lot of threads and internal memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "plain" things that reside on the GPU ("device"). In the Julia world, these "plain" types are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. In theory, we could have compiled a kernel for this - but every time it accessed an element of the exponents, it would have to do a round trip to the regular memory, which is very slow.
+This type contains a `Vector` - a standard Julia type that does not live in GPU memory! Why is this an error? GPUs have a lot of threads and internal memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain "plain" things that reside on the GPU ("device"). In the Julia world, these "plain" types are referred to as `isbitstypes`, which are immutable types that have a fixed size in memory. In theory, we could have compiled a kernel for this - but every time it accessed an element of the exponents, it would have to do a round trip to the regular memory, which is very slow when compared to accessing device-resident data.
 
-But how do we convert the type itself? The answer lies in the `Adapt.jl` package. First, we must make the type parametric so that it can hold any kind of storage for the exponents (essentially similar to a templated class in C++). We then automatically generate an adapt function that takes care of sending the non-isbits-types of our type to GPU memory:
+The problem is then not the function, but rather the location of the memory used by the type. But how do we make the type itself store data in device memory? The answer lies in the `Adapt.jl` package. First, we must make the type parametric so that it can hold any kind of storage for the exponents. Parametric types are essentially very similar to templated classes in C++, where more than one type can be generated from the same human-readable definition (and just in like C++, overusing parametric types can create stack traces that are not readable for humans).
+
+Once the type is parametric, we can automatically generate an adapt function that takes care of sending the non-isbits-types of our type to GPU memory:
 
 ```julia
 using Adapt
@@ -311,6 +313,8 @@ function Adapt.adapt_structure(to, krdef::SimpleRelPermGeneric)
     return SimpleRelPermGeneric(adapted_exponents)
 end
 ```
+
+The real strength of Adapt is that it is independent of the storage types themselves. Our type and function pair can now be run on a multitude of different array types, including other types of GPU libraries.
 
 ## Moving Jutul and JutulDarcy to GPUs
 
@@ -357,8 +361,8 @@ end
     end
 end
 
-function co2_brine_mixture_density(T, c1, c2, c3, c4, rho_h2o_pure, X_co2)
-    T -= 273.15 # Relation is in C, input is in Kelvin
+function co2_brine_mixture_density(T_kelvin, c1, c2, c3, c4, rho_h2o_pure, X_co2)
+    T = T_kelvin - 273.15 # Relation is in C, input is in Kelvin
     vol_co2 = 1e−6*(c1 + c2*T + c3*T^2 + c4*T^3)
     rho_liquid_co2_pure = 44.01e-3/vol_co2
     X_h2o = 1.0 - X_co2
@@ -388,11 +392,16 @@ function Adapt.adapt_structure(to, interpolant::BilinearInterpolant)
 end
 ```
 
-That's it! Note that there are no changes to the functions that define the physics behavior! Once I had a working approach for porting individual properties, I set up a small test harness and let Codex with Sol 5.6 work for a few hours fixing and testing the remaining property evaluations during the weekend while I did some carpentry around the house (at least I have a backup career if the coding agents take over completely).
+That's it! Note that there are no changes to the functions that define the mathematical model for the density. The required changes are only applied to the *types* and not to the *functions* has two important implications:
+
+1. As there are no changes to the functional form, we do not have to force modellers to write relationships in a special manner for it to run on GPUs.
+2. Verification of a GPU port is much easier when there are no changes to the functions themselves. If rewriting an expression for GPU introduces subtle changes in behavior, the simulator will still happily simulate the wrong answer, but changes to types will result in compilation errors.
+
+Once I had a working approach for porting individual properties, I set up a small test harness and let Codex with Sol 5.6 work for a few hours fixing and testing the remaining property evaluations during the weekend while I did some carpentry around the house (at least I have a backup career if the coding agents take over completely).
 
 ### Equations on GPUs
 
-The model equations were also an exercise in using `Adapt`. In addition, I let Sol port one of my old codes for fuzing equation evaluation with assembly. This code was not very useful in serial, but on GPU it saves substantial memory. Many parts of the code had to be slightly modified to handle asynchronous operations and transfer to and from GPUs during input and output, but there were no changes to the outer API or the governing equations themselves.
+The model equations were also an exercise in using `Adapt`. In addition, I let Sol port one of my old codes for fuzing equation evaluation with assembly. This code was not very useful on CPU, where memory is abundant, but on GPU it saves substantial memory. Many parts of the code had to be slightly modified to handle asynchronous operations and transfer to and from GPUs during input and output, but there were no changes to the outer API or the governing equations themselves. As with the properties, this means that the verification process is limited to checking if the code compiles and runs rather than going over every single functional expression.
 
 ### Convergence and updates on GPUs
 
@@ -400,9 +409,9 @@ These functions were straightforward to transfer to GPUs. Several fused for-loop
 
 ### Linear solvers on GPUs
 
-I have had the GPU implementation on my TODO-list for a long time. The largest barrier was always the linear solver part. JutulDarcy uses a mixture of `hypre` (which has Julia bindings for CPU/MPI and is hassle-free to bundle), a hand-written block ILU(0) and standard Julia sparse functions. If I wanted a vendor-neutral implementation, my options were:
+I have had the GPU implementation on my TODO-list for a long time. The largest barrier was always the linear solver, which usually amounts to a significant amount of the model runtime. JutulDarcy uses a mixture of `hypre` (which has Julia bindings for CPU/MPI and is hassle-free to bundle), a hand-written block ILU(0) and standard Julia sparse functions. If I wanted a vendor-neutral implementation, my options were:
 
-1. Add support for the vendor libraries. We already support CuSPARSE and AMGX for CUDA, and similar implementations are available for AMDGPU. However, AMGX is not actively maintained, only builds on Linux and the performance is not as good as one would hope from a native GPU solver.
+1. Add support for the vendor libraries. We already support CuSPARSE and AMGX for CUDA, and similar implementations are available for AMDGPU (with the rolls-off-your-tongue name [rocALUTION](https://rocm.docs.amd.com/projects/rocALUTION/en/develop/what-is-rocalution.html)). However, AMGX is not actively maintained, only builds on Linux and the performance is not as good as one would hope from a native GPU solver.
 2. Build support for `hypre` with different GPU backends, and add this support to the Julia package. This definitely the most practical option that uses pre-existing libraries and still on my TODO list. However, it is a fair bit of engineering efforts to build the different GPU variants and integrate them with the Julia binary builder system, and figuring out compilation options is definitely not my best skill.
 3. Write our own AMG and preconditioner library from scratch using KernelAbstractions as the execution model.
 
@@ -414,7 +423,9 @@ One problem with reservoir simulation is that the linear solver does a lot of re
 
 This is a quite limited subset of what most `hypre` supports, but it sufficiently covers the needed routines for solving flow systems.
 
-This has been an on-and-off project for me. The first attempt can be found in the form of [Draugr.jl](https://github.com/SINTEF-agentlab/Draugr.jl) which was intended primarily to test the capabilities of agents, as no code was written by humans in that project. The performance was quite good, but after many agent sessions the code was far too expansive to integrate directly into JutulDarcy. So I set up a test fixture with exported matrices that allowed the code to run tests against hypre and our own smoothers, wrote a specification with a proposed API and let Sol work for several sessions. The resulting library is quite small - about 4000 lines of code compared to Draugr's 12290 lines of code. The AMG is very similar to the best performing options from hypre, to the extent that I would consider the AMG implementation as a derived work of hypre. As the interface to the simulator is quite limited and easy to test, I am comfortable letting an agent work on this part without going over every line of code. In the future, it is likely that we can switch to builds of hypre, and the code still has the option to use vendor libraries, but having a Julia native preconditioner means that we can automatically generalize support of JutulDarcy to any other backend that may appear in the future [^3]
+This has been an on-and-off project for me. The first attempt can be found in the form of [Draugr.jl](https://github.com/SINTEF-agentlab/Draugr.jl) which was intended primarily to test the capabilities of agents, as no code was written by humans in that project. The performance was quite good, but after many agent sessions the code was far too expansive to integrate directly into JutulDarcy. So I set up a test fixture with exported matrices that allowed the code to run tests against hypre and our own smoothers, wrote a specification with a proposed API and let Sol work for several sessions. The resulting library is quite small - about 4000 lines of code compared to Draugr's 12290 lines of code. The AMG is very similar to the best performing options from hypre, to the extent that I would consider the AMG implementation as a derived work of hypre.
+
+The nice thing about preconditioners is that it is very easy to verify their performance by checking if the application of the preconditioner $P$ gives a new update $x = P^{-1}b$ that reduces the linear residual $\| Ax - b \|_2$ at a reasonable speed for sample systems $A$. As the interface to the simulator is quite limited and easy to test, I am comfortable letting an agent work on this part without going over every line of code. In the future, it is likely that we can switch to builds of hypre for different devices. Jutul also has the option to use vendor libraries where preconditioners exist, but having a Julia native preconditioner means that we can automatically generalize support of JutulDarcy to any other backend that may appear in the future [^3]
 
 ## Working with agents
 
