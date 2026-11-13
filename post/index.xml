@@ -1,0 +1,802 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Posts on Olav Møyner</title><link>https://moyner.github.io/post/</link><description>Recent content in Posts on Olav Møyner</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Mon, 08 Sep 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://moyner.github.io/post/index.xml" rel="self" type="application/rss+xml"/><item><title>A unified GPU/CPU reservoir simulator</title><link>https://moyner.github.io/p/kernels-and-agents/</link><pubDate>Mon, 08 Sep 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/kernels-and-agents/</guid><description>&lt;h2 id="introduction"&gt;Introduction
+&lt;/h2&gt;&lt;p&gt;I have just hit the merge button on the 0.4.1 release of &lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy&lt;/a&gt;. There is a lot of nice improvements in the &lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl/releases/tag/v0.4.0" target="_blank" rel="noopener"
+&gt;0.4.0&lt;/a&gt; and &lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl/releases/tag/v0.4.1" target="_blank" rel="noopener"
+&gt;0.4.1&lt;/a&gt; releases, but the biggest change since the 0.3 series is full support for executing models on GPUs. We already had GPU support for linear solves on CUDA through NVIDIAs CuSPARSE and AMGX libraries, but the new release moves all compute-intensive parts to the GPUs in a single unified implementation that can execute on AMD GPUs, CUDA GPUs, OpenCL and different flavors of CPUs, all written in Julia.&lt;/p&gt;
+&lt;div class="video-wrapper"&gt;
+&lt;video
+controls
+src="8c.mp4"
+&gt;
+&lt;p&gt;
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="8c.mp4"&gt;link to the video&lt;/a&gt; instead.
+&lt;/p&gt;
+&lt;/video&gt;
+&lt;/div&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Example of a 300 by 300 mesh eeight-pseudocomponent Safah fluid from &lt;a class="link" href="https://doi.org/10.2118/29115-MS" target="_blank" rel="noopener"
+&gt;Hearn and Whitson, SPE 29115&lt;/a&gt; in a quarter-five-spot displacement running on the GPU.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;This post is written for those who are interested in at least one of the following:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;GPUs for reservoir simulation&lt;/li&gt;
+&lt;li&gt;The Julia programming language&lt;/li&gt;
+&lt;li&gt;Vendor neutral GPU programming&lt;/li&gt;
+&lt;li&gt;AI assistance&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;This post is intended to be read by readers who may not be familiar with all of the above, so please bear with me if you are already a GPU-reservoir simulation expert who writes Julia kernels in your sleep (if so, drop me a line, we probably have some overlapping interests!).&lt;/p&gt;
+&lt;h3 id="i-dont-want-to-read-i-want-numbers"&gt;I don&amp;rsquo;t want to read, I want numbers
+&lt;/h3&gt;&lt;p&gt;Ok, then! Reported numbers are for a double precision solve with linear algebra in single precision and FGMRES as the outer solver.&lt;/p&gt;
+&lt;h4 id="spe10"&gt;SPE10
+&lt;/h4&gt;&lt;p&gt;&lt;img src="https://moyner.github.io/p/kernels-and-agents/spe10.png"
+width="1921"
+height="982"
+srcset="https://moyner.github.io/p/kernels-and-agents/spe10_hu_b7ab92cef6fbc5cd.png 480w, https://moyner.github.io/p/kernels-and-agents/spe10_hu_fa26b1cd79534fc9.png 1024w"
+loading="lazy"
+alt="SPE10, logpermx"
+class="gallery-image"
+data-flex-grow="195"
+data-flex-basis="469px"
+&gt;&lt;/p&gt;
+&lt;p&gt;SPE10 (193 Newtons) in 12 seconds on a GTX 4080. On a Blackwell card this drops to under 8 seconds, with a single evaluation of properties and assembly taking less than 2 ms for the entire model.&lt;/p&gt;
+&lt;h4 id="spe11"&gt;SPE11
+&lt;/h4&gt;&lt;p&gt;Solving a 2 million cell thermal &lt;a class="link" href="https://www.spe.org/en/csp/" target="_blank" rel="noopener"
+&gt;SPE11b&lt;/a&gt; case uses 110 ms per complete iteration, where each property and assembly pass is less than 25 ms.&lt;/p&gt;
+&lt;h4 id="hydrogen-storage"&gt;Hydrogen storage
+&lt;/h4&gt;&lt;p&gt;The 8 component &lt;a class="link" href="https://www.ite.tu-clausthal.de/en/research/subsurface-energy-and-gas-storage/uhs-benchmark-study" target="_blank" rel="noopener"
+&gt;Underground Hydrogen Benchmark study&lt;/a&gt; (316 steps, 600 Newtons) runs in 50 seconds with the flash running on GPU. Here is a video in JutulDarcy&amp;rsquo;s viewer:&lt;/p&gt;
+&lt;div class="video-wrapper"&gt;
+&lt;video
+controls
+src="h2.mp4"
+&gt;
+&lt;p&gt;
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="h2.mp4"&gt;link to the video&lt;/a&gt; instead.
+&lt;/p&gt;
+&lt;/video&gt;
+&lt;/div&gt;
+&lt;h4 id="real-field-models"&gt;Real-field models
+&lt;/h4&gt;&lt;p&gt;I cannot share too much about confidential models, but one example is a black-oil model with approximately 100 wells and 200,000 cells with 20 years of history that now runs in 70 seconds over 8 minutes on CPU. So even moderately sized models with a lot of smaller time-steps get improved performance.&lt;/p&gt;
+&lt;h3 id="jutuldarcy---reservoir-simulation-in-julia"&gt;JutulDarcy - Reservoir simulation in Julia
+&lt;/h3&gt;&lt;p&gt;JutulDarcy is a toolkit for loading, visualizing, modifying, building, simulating and optimizing reservoir simulation models. It is used extensively in our research, and we release it as open source under a permissive license.&lt;/p&gt;
+&lt;p&gt;I started what eventually became Jutul.jl (automatic differentiation-based nonlinear solvers for discretized PDEs) and JutulDarcy.jl (reservoir simulation with Jutul.jl as the engine) back in 2020 with three goals:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Learn Julia well enough to confidently use it in ongoing projects at SINTEF &lt;em&gt;(a success! I now use Julia a lot, as do many of my colleagues.)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;Explore the potential for fast automatic differentiation of PDEs using the many AD packages in the Julia ecosystem&lt;sup id="fnref:1"&gt;&lt;a href="#fn:1" class="footnote-ref" role="doc-noteref"&gt;1&lt;/a&gt;&lt;/sup&gt; &lt;em&gt;(definitely a success, even if we had to write a lot of code to get there)&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;Assess the potential for &amp;ldquo;write once, execute everywhere&amp;rdquo; GPU/CPU parallelism that was emerging through the then nascent &lt;a class="link" href="https://github.com/JuliaGPU/KernelAbstractions.jl" target="_blank" rel="noopener"
+&gt;&lt;code&gt;KernelAbstractions&lt;/code&gt;&lt;/a&gt; package&lt;sup id="fnref:2"&gt;&lt;a href="#fn:2" class="footnote-ref" role="doc-noteref"&gt;2&lt;/a&gt;&lt;/sup&gt; &lt;em&gt;(&amp;hellip;it took six years, but we got there in the end&amp;hellip;)&lt;/em&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;The initial version of the code contained AD solves for single and multiphase immiscible flow without any wells running on both CPU and GPU. Back in 2020, writing and testing kernels required a working GPU device, and the developer experience for kernel programming was very rough around the edges, with incomprehensible error messages and frequent crashes when launching kernels that gave errors. I made the decision to instead focus on differentiablity and high performance on the CPU. In the main paper &lt;a class="link" href="https://link.springer.com/article/10.1007/s10596-025-10366-6" target="_blank" rel="noopener"
+&gt;&amp;ldquo;JutulDarcy.jl - a fully differentiable high-performance reservoir simulator based on automatic differentiation&amp;rdquo;&lt;/a&gt;, the GPU results are limited to the linear solvers for NVIDIA devices via CuSPARSE/AMGX vendor libraries. These do give noticable performance benefits, but having only the linear solver on GPU means that there is a lot of memory traffic between the device and host during each solve.&lt;/p&gt;
+&lt;h3 id="overview-of-this-blog-post"&gt;Overview of this blog post
+&lt;/h3&gt;&lt;p&gt;This blog post is not about the great performance offered by GPUs, which is well established in the literature, but rather how reservoir simulation can be executed in a fast manner on GPUs without making the code a &amp;ldquo;GPU-ified&amp;rdquo; code that has a lot of complexity and is tied to one particular vendor or execution mode. The ingredients we are going to use are:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;The Jutul+JutulDarcy framework for automatic differentiation&lt;/li&gt;
+&lt;li&gt;KernelAbstractions.jl and Adapt.jl for vendor-neutral parallelization&lt;/li&gt;
+&lt;li&gt;Julia package extensions for load-on-demand functionality&lt;/li&gt;
+&lt;li&gt;A bit of coding agents to fill in some gaps in the Julia linear solver ecosystem for our particular use case&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id="gpu-reservoir-simulation"&gt;GPU reservoir simulation
+&lt;/h2&gt;&lt;p&gt;Running models on GPUs can be a major performance benefit, as modern GPUs offer much higher throughput than CPUs when performing repetitive numerical calculations. Other reservoir simulators that were originally written for CPUs before GPUs for computations was established have moved some or all calculations to GPUs (e.g. Intersect or tNavigator) and several simulators have been developed with the express intent of targeting GPUs. This includes both commerical offerings like Echelon from StoneRidge and research simulators like GEOS that was written from the ground-up for GPUs and DARTS where the operator-based linearization allows fast GPU execution by caching operators that are sparsely evaluated on the CPU.&lt;/p&gt;
+&lt;p&gt;There are a few pain points when considering GPU solves for reservoir simulation. As a single code often supports many different types of governing equations that have their own highly performance sensitive kernels for residual and Jacobians, porting to GPU can be a highly invasive process that touches large parts of the code. There is a risk of having separate GPU implementations that live side-by-side with the CPU version and has to be maintained in sync, or to end up with highly GPU-specialized code that is hard to manage and may have worse performance on CPU. NVIDIA is the most popular vendor for GPUs and is programmed by using the proprietary CUDA library, so you may then naturally run into issues when you want to run on e.g. an AMD card, or some future parallel hardware accelerator that isn&amp;rsquo;t on the radar yet.&lt;/p&gt;
+&lt;h2 id="how-does-a-reservoir-simulator-work"&gt;How does a reservoir simulator work?
+&lt;/h2&gt;&lt;p&gt;Modern reservoir simulators predominantly use a fully or partially implicit scheme for solving the governing equations. For brevity, we will limit our selves to the fully implicit case in this blog post. A rough sketch of a time stepping loop &lt;a class="link" href="https://en.wikipedia.org/wiki/Newton%27s_method" target="_blank" rel="noopener"
+&gt;Newton&amp;rsquo;s method&lt;/a&gt; is as follows:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;Properties&lt;/strong&gt;: Evaluate constitutive laws based on current primary variables $\mathbf{x}$ and the primary variables at the previous time-step $\mathbf{x}_0$.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Equation assembly&lt;/strong&gt;: Compute the residual equations $\mathbf{r}$ and the corresponding Jacobian matrix from the evaluated properties and current primary variables&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Convergence&lt;/strong&gt;: Check convergence by checking the magnitude of $\mathbf{r}$ since equations on residual form are solved when $\mathbf{r} = \mathbf{0}$.If the equations are converged, set $\mathbf{x}_0 \gets \mathbf{x}$ and go to the next time-step, starting from point 1.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Linear solve&lt;/strong&gt;: If we have not yet converged, solve the linearized system to obtain an update $\Delta \mathbf{x} = -J^{-1}\mathbf{r}$ to the primary variables.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Update&lt;/strong&gt;: Update the primary variables $\mathbf{x} \gets \mathbf{x} + \Delta \mathbf{x}$ with a bit of logic to avoid overshoots and unphysical values&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;My notation skips over a lot of complexity, but the simulation itself can be divided into these five steps, with a time-stepping loop around it that handles time-step cuts, changes in controls, and so on.&lt;/p&gt;
+&lt;h3 id="a-small-example"&gt;A small example
+&lt;/h3&gt;&lt;p&gt;Let us consider a simple two-component, two-phase CO$_2$-H$_2$O model used for CO$_2$ storage by geological sequestration (CCS) with thermal effects. An engineer would create a 3D model of an saline aquifer with certain geological properties, place one or more wells, and then simulate injection of CO$_2$ for a time period of 30 days or 10,000 years to look at how the CO$_2$ distributes in the aquifer model and how the pressure of the system changes.&lt;/p&gt;
+&lt;p&gt;In the reservoir simulator, the reservoir is divided (discretized) into a number of cells with known volume and connections to neighboring cells. The problem is then to predict how the species and energy moves, given operational constraints (a policy for injection of CO$_2$) for a time period. In broad strokes, the number of cells and the amount of time to be simulated determines the actual runtime of the computer program.&lt;/p&gt;
+&lt;h3 id="governing-equations"&gt;Governing equations
+&lt;/h3&gt;&lt;p&gt;Advancing our CCS system through time amounts to solving three conservation equations for the transport in the reservoir:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Conservation of CO$_2$ mass present in both phases in each cell&lt;/li&gt;
+&lt;li&gt;Conservation of H$_2$O mass in both phases in each cell&lt;/li&gt;
+&lt;li&gt;Conservation of thermal energy in each cell as the sum of internal energy of the rock and the fluid phases present in the voidspace of the rock&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;In addition, there may be closure equations for thermodynamical equilibrium in each cell that determines how the species distribute between the phases, and a number of well equations. The well equations are the same type of conservation laws for the well-bore, coupled to the reservoir, as well as a number of equations for &amp;ldquo;facility constraints&amp;rdquo; that determine how the wells are operated. In this case, this would be how much CO$_2$ gets injected at what times through the wells provided that the pressure build up in the well is within reasonable limits. The equations for geothermal energy, oil and gas recovery, hydrogen storage and other applications are from this vantage point very similar - the number of components and phases may change, but the types of equations are very much the same. Mathematicians who dip their toes in reservoir simulation like this form, as it unifies the description, and also makes it easy to solve the &amp;ldquo;easiest&amp;rdquo; variant and assume that generalizing solvers to the harder variants used in industry can be left as future work for some unlucky PhD students.&lt;/p&gt;
+&lt;h3 id="properties"&gt;Properties
+&lt;/h3&gt;&lt;p&gt;If we now move from the high mathematical vantage points of governing equations to property evaluation, the situation becomes much more messy. Reservoir simulation is (perhaps uniquely) very data-intensive in terms of defining simulation problems. Any of the above applications have a large number of choices for different constitutive relationships, and the relationships themselves are often quite mathematically complex. A few examples for our CCS example:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Relative permeabilities model the change to Darcy&amp;rsquo;s law under multiphase flow conditions. There are several types of relative permeability end-point scaling, hysteresis models. Typically, these functions are also different depending on the rock type a given cell is taken from.&lt;/li&gt;
+&lt;li&gt;Evaluating phase distributions of species may require the solution of a local thermodynamic equilibrium, and there are countless options for different equations of state that require different solution strategies. This includes the black-oil model, equilibrium constant flashes (K-values) with dependence on state variables and different types of equations of state, all of which may be used to model dissolution of CO$_2$ under changing conditions.&lt;/li&gt;
+&lt;li&gt;The density of the mixtures depend on the pressure, temperature and compositions in each cell. This may be provided by an equation of state, or different correlations for each phase.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In terms of GPU execution, the good news is that properties are evaluated cell-by-cell and as each entry is independent from the others, they are massively parallel. The bad news is that there are an enormous number of them, with varying dependency relationships. In terms of number of line of code, this is usually the largest part of a reservoir simulator.&lt;/p&gt;
+&lt;h3 id="equations"&gt;Equations
+&lt;/h3&gt;&lt;p&gt;The equations take the properties and variables and produce the residual equations, and their Jacobians. Practical reservoir simulation overwhelmingly uses two-point finite-volume schemes. The conservation equations for the reservoir are made up of the evaluation of a cell-wise accumulation term and the numerical fluxes between pairs of cells that share an interface. The residual equations, if cell-wise values are computed, are also independent of each other and suitable for parallelism, with the largest wrinkle being the simultanous computation of residual and Jacobian. We must also at this stage compute the coupling terms that connect the wells to the reservoir, which are conceptually similar to fluxes, albeit with yet another implementation per type of governing equation.&lt;/p&gt;
+&lt;h3 id="convergence"&gt;Convergence
+&lt;/h3&gt;&lt;p&gt;Checking the convergence of the system requires parallel reductions with scaling(e.g. a sum or maximum value) that are straightforward to parallelize. The convergence criteria can in practice be complicated expressions that depend on the model type. For our CCS problem, we would check that the well equations are solved in the Inf norm, that the sum of mass balance over all cells for each component is sufficiently small, and that the scaled maximum error is small (less than $10^{-3}$ in all cells).&lt;/p&gt;
+&lt;h3 id="linear-solvers"&gt;Linear solvers
+&lt;/h3&gt;&lt;p&gt;Solving the resulting linear systems is typically done using Krylov-subspace method accelerated either with a pure smoother like ILU(0), or with a constrained-pressure-residual (CPR) preconditioner that combines algebraic multigrid (AMG) for the pressure with a second-stage smoother. This amounts to matrix-vector products (which are parallel for compressed sparse row (CSR) matrices), inner products and norms (which are parallel reductions similar to the convergence criteria), AMG cycles with diagonal smoothers (which are parallel) and triangular solves (which can be colored and parallelized).&lt;/p&gt;
+&lt;h3 id="updates"&gt;Updates
+&lt;/h3&gt;&lt;p&gt;Finally, the primary variables are updated for each cell. This is trivially parallel, but there is again specific logic to each variable. For instance, pressure updates must be limited in both absolute and relative magnitude, saturation and composition fractions after updates must be projected to sum to one and black-oil variable switching requires careful change of variable sets across phase boundaries.&lt;/p&gt;
+&lt;h2 id="array-based-programming"&gt;Array-based programming
+&lt;/h2&gt;&lt;p&gt;I spent many years writing efficient MATLAB code. If I permit a generalization, in MATLAB, execution of user code is slow, but the compiler can vectorize many operations to call compiled libraries. Say that we were to evaluate a simplified Brooks-Corey relative permeability $k_r = S^N$ for many saturations. There has been improvements to MATLAB&amp;rsquo;s JIT compiler over the years, but for the longest time the following two code snippets would differ in runtime with a huge number of magnitude:&lt;/p&gt;
+&lt;h3 id="looping-matlab"&gt;Looping MATLAB
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-matlab" data-lang="matlab"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="p"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;kr&lt;/span&gt; &lt;span class="p"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;zeros&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="nb"&gt;i&lt;/span&gt; &lt;span class="p"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;=&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;^&lt;span class="mi"&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id="vectorized-matlab"&gt;Vectorized MATLAB
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-matlab" data-lang="matlab"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="p"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;% Vectorized code&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;kr&lt;/span&gt; &lt;span class="p"&gt;=&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="o"&gt;.^&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;Writing fast MATLAB code was an exercise of:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Avoiding loops.&lt;/li&gt;
+&lt;li&gt;If you cannot avoid writing a loop, loop over the smallest index&lt;/li&gt;
+&lt;li&gt;Angrily write a MEX C-extension to get a fast loop when I could not do 1 and 2.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Julia (and most other compiled languages) allows you to write fast loops, and you are generally free to use either loops or vectorized expressions based on personal preference. For me, the flexibility of Julia has been a joy to work with &amp;ndash; towards the end of my post-doc in 2018 I was spending far too much on point 3 in the above list over actually writing application code. For instance, if we take the same function and port it to Julia, there is no practical difference between these two forms:&lt;/p&gt;
+&lt;h3 id="looping-julia"&gt;Looping Julia
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;kr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;zeros&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="k"&gt;in&lt;/span&gt; &lt;span class="n"&gt;eachindex&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id="vectorized-julia"&gt;Vectorized Julia
+&lt;/h3&gt;&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;kr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="o"&gt;.^&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h3 id="gpu-programming-in-julia"&gt;GPU programming in Julia
+&lt;/h3&gt;&lt;p&gt;Going to GPU programming, however, means that you are not allowed to do scalar indexing on the CPU if you want fast code. In practical terms, this means that you either write kernels that perform the same bit of code many times in parallel, or you use vectorized functions on GPU-resident arrays to execute. It is was a bit of a &amp;ldquo;back to the future&amp;rdquo;-moment where I had to go back to the old MATLAB mental model for what code was performance safe. Fortunately for me, the GPU ecosystem has improved significantly since 2020, both in terms of capability and usability. If you want to write vendor-neural (or &amp;ldquo;run anywhere&amp;rdquo;) code, you can make use of KernelAbstractions. Here is our little relative permeability function again, this time in parallel form:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;span class="lnt"&gt;13
+&lt;/span&gt;&lt;span class="lnt"&gt;14
+&lt;/span&gt;&lt;span class="lnt"&gt;15
+&lt;/span&gt;&lt;span class="lnt"&gt;16
+&lt;/span&gt;&lt;span class="lnt"&gt;17
+&lt;/span&gt;&lt;span class="lnt"&gt;18
+&lt;/span&gt;&lt;span class="lnt"&gt;19
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;using&lt;/span&gt; &lt;span class="n"&gt;KernelAbstractions&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# Define kernel&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nd"&gt;@kernel&lt;/span&gt; &lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;evaluate_kernel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;KR&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nd"&gt;@Const&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;S&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;I&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nd"&gt;@index&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Global&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nd"&gt;@inbounds&lt;/span&gt; &lt;span class="n"&gt;KR&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;I&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;S&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;I&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# Write function that launches kernel&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# Can and should do more input testing than this!&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;relperm_ka&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;kernel&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;evaluate_kernel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;kernel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;ndrange&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;length&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;zeros&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;backend&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;get_backend&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# Call function and synchronize execution&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;relperm_ka&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;KernelAbstractions&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;synchronize&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;This is a bit more complicated, but it is essentially a port of the loop version to a kernel that can be executed on GPUs. Here, we launched it on CPU, but we can then load a backend that matches our graphics card and execute it there as well:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;span class="lnt"&gt;7
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;using&lt;/span&gt; &lt;span class="n"&gt;CUDA&lt;/span&gt; &lt;span class="c"&gt;# Or e.g. AMDGPU&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;cu&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;cu&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;backend&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;get_backend&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# Call function and synchronize execution&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;relperm_ka&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;KernelAbstractions&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;synchronize&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;Kernels are quite verbose, but the mental overhead becomes quite small when the functions become larger. The nice thing is that you can also simply do the array version and run that on GPU:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;using&lt;/span&gt; &lt;span class="n"&gt;CUDA&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;cu&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;cu&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="o"&gt;.^&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;This also extends to functional programming. Another way to do the same loop is via &lt;code&gt;map&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;map&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s_i&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;s_i&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;h4 id="adapt-ing-datastructures"&gt;Adapt-ing datastructures
+&lt;/h4&gt;&lt;p&gt;The above example is very straightforward, but when you move to real-world applications, life is not so simple. Let us say that we have a cell-wise parameter for the exponent that is wrapped in a type, instead of it being the constant number 2:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;span class="lnt"&gt;13
+&lt;/span&gt;&lt;span class="lnt"&gt;14
+&lt;/span&gt;&lt;span class="lnt"&gt;15
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="kt"&gt;SimpleRelPerm&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;exponents&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;Vector&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="kt"&gt;Float64&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;evaluate&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;SimpleRelPerm&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;idx&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;&lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;exponents&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;idx&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;krdef&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;SimpleRelPerm&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.2&lt;/span&gt;&lt;span class="o"&gt;.*&lt;/span&gt;&lt;span class="n"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;zeros&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="k"&gt;in&lt;/span&gt; &lt;span class="n"&gt;eachindex&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;evaluate&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;krdef&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;Let us write modify the kernel accordingly:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;span class="lnt"&gt;13
+&lt;/span&gt;&lt;span class="lnt"&gt;14
+&lt;/span&gt;&lt;span class="lnt"&gt;15
+&lt;/span&gt;&lt;span class="lnt"&gt;16
+&lt;/span&gt;&lt;span class="lnt"&gt;17
+&lt;/span&gt;&lt;span class="lnt"&gt;18
+&lt;/span&gt;&lt;span class="lnt"&gt;19
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nd"&gt;@kernel&lt;/span&gt; &lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;evaluate_kernel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;KR&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;relperm_def&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="nd"&gt;@Const&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;S&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;I&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nd"&gt;@index&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Global&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="nd"&gt;@inbounds&lt;/span&gt; &lt;span class="n"&gt;KR&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;I&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;evaluate&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;relperm_def&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;S&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;I&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;I&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# Write function that launches kernel&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# Can and should do more input testing than this!&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;relperm_ka&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;krdef&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;kernel&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;evaluate_kernel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;kernel&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;krdef&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;ndrange&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;length&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;zeros&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;backend&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;get_backend&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# Call function and synchronize execution&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;relperm_ka&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;krdef&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;KernelAbstractions&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;synchronize&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;We should be able to run this on the GPU by converting the arrays like we did before, right?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;cu&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;s&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;cu&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;backend&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;get_backend&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;relperm_ka&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;krdef&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;KernelAbstractions&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;synchronize&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;Uh oh - we get an error message:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-fallback" data-lang="fallback"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;ERROR: GPU compilation of MethodInstance for gpu_evaluate_kernel(::KernelAbstractions.CompilerMetadata{…}, ::CuDeviceVector{…}, ::SimpleRelPerm, ::CuDeviceVector{…}) failed
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;KernelError: passing non-bitstype argument
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;Argument 4 to your kernel function is of type SimpleRelPerm, which is not a bitstype:
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; .exponents is of type Vector{Float64} which is not isbits.
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; .ref is of type MemoryRef{Float64} which is not isbits.
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; .mem is of type Memory{Float64} which is not isbits.
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;Only bitstypes, which are &amp;#34;plain data&amp;#34; types that are immutable
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;and contain no references to other values, can be used in GPU kernels.
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;For more information, see the `Base.isbitstype` function.
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;This type contains a &lt;code&gt;Vector&lt;/code&gt; - a standard Julia type that does not live in GPU memory! Why is this an error? GPUs have a lot of threads and internal memory bandwidth. One of the things GPUs are really good at is parallel processing on arrays that contain &amp;ldquo;plain&amp;rdquo; things that reside on the GPU (&amp;ldquo;device&amp;rdquo;). In the Julia world, these &amp;ldquo;plain&amp;rdquo; types are referred to as &lt;code&gt;isbitstypes&lt;/code&gt;, which are immutable types that have a fixed size in memory. In theory, we could have compiled a kernel for this - but every time it accessed an element of the exponents, it would have to do a round trip to the regular memory, which is very slow when compared to accessing device-resident data.&lt;/p&gt;
+&lt;p&gt;The problem is then not the function, but rather the location of the memory used by the type. But how do we make the type itself store data in device memory? The answer lies in the &lt;code&gt;Adapt.jl&lt;/code&gt; package. First, we must make the type parametric so that it can hold any kind of storage for the exponents. Parametric types are essentially very similar to templated classes in C++, where more than one type can be generated from the same human-readable definition (and just in like C++, overusing parametric types can create stack traces that are not readable for humans).&lt;/p&gt;
+&lt;p&gt;Once the type is parametric, we can automatically generate an adapt function that takes care of sending the non-isbits-types of our type to GPU memory:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;span class="lnt"&gt;5
+&lt;/span&gt;&lt;span class="lnt"&gt;6
+&lt;/span&gt;&lt;span class="lnt"&gt;7
+&lt;/span&gt;&lt;span class="lnt"&gt;8
+&lt;/span&gt;&lt;span class="lnt"&gt;9
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;using&lt;/span&gt; &lt;span class="n"&gt;Adapt&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="kt"&gt;SimpleRelPermGeneric&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="kt"&gt;T&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;exponents&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;T&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;Adapt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="nd"&gt;@adapt_structure&lt;/span&gt; &lt;span class="n"&gt;SimpleRelPermGeneric&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;evaluate&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;SimpleRelPermGeneric&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;idx&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;&lt;span class="n"&gt;kr&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;exponents&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;idx&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;We can then launch the same kernel with the new type, transferred to GPU:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;krdef_generic&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;cu&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;SimpleRelPermGeneric&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.2&lt;/span&gt;&lt;span class="o"&gt;.*&lt;/span&gt;&lt;span class="n"&gt;rand&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;N&lt;/span&gt;&lt;span class="p"&gt;)))&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;relperm_ka&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;out&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;krdef_generic&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;KernelAbstractions&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;synchronize&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;backend&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;Now we have a custom type and function running on GPU! For more complicated constructors, it can be required or beneficial to manually write Adapt wrappers. A manual wrapper would look something like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt;1
+&lt;/span&gt;&lt;span class="lnt"&gt;2
+&lt;/span&gt;&lt;span class="lnt"&gt;3
+&lt;/span&gt;&lt;span class="lnt"&gt;4
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;Adapt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;adapt_structure&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;to&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;krdef&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;SimpleRelPermGeneric&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;adapted_exponents&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Adapt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;adapt_structure&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;to&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;krdef&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;exponents&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;SimpleRelPermGeneric&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;adapted_exponents&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;The real strength of Adapt is that it is independent of the storage types themselves. Our type and function pair can now be run on a multitude of different array types, including other types of GPU libraries.&lt;/p&gt;
+&lt;h2 id="moving-jutul-and-jutuldarcy-to-gpus"&gt;Moving Jutul and JutulDarcy to GPUs
+&lt;/h2&gt;&lt;p&gt;GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. Even if we did not exploit it until now, the design of the Jutul was written with these restrictions of GPUs in mind. The main design considerations for Jutul that are relevant for GPUs are:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Everything uses automatic differentiation, so there is no manual derivatives that need to be specialized by hand for GPUs&lt;/li&gt;
+&lt;li&gt;The state is a struct of arrays rather than a array of structs. This means that Jutul internally stores e.g. all pressures or densities sequentially in memory. For variables like density, the density of the two phases in our example will be right next to each other as a column of a matrix.&lt;/li&gt;
+&lt;li&gt;The dependence between these arrays (primary variables, secondary variables / properties and parameters) is an execution graph that is dynamic, allowing any variable to depend on any other variable, and the simulator can compute both the dependence at the start of simulation.&lt;/li&gt;
+&lt;li&gt;Evaluating properties and equations are mutating functions that update result arrays in place, similar to the relative permeability example above.&lt;/li&gt;
+&lt;li&gt;Equations use statically sized automatic differentiation with a fixed sparsity pattern detected at simulation setup. All updates to the linear system happens in-place.&lt;/li&gt;
+&lt;li&gt;The simulator has a rigorous approach where all changing values are stored in a state. This means that we can transfer the entire state of the simulator to and from GPU just by iterating over a list of named arrays. The structure of the simulator after initialization is immutable, making it impossible to have two references to the same state be out of sync.&lt;/li&gt;
+&lt;li&gt;Types parametric and can be specialized for GPU array types without changes.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src="https://moyner.github.io/p/kernels-and-agents/graph_spe11c.png"
+width="2798"
+height="1218"
+srcset="https://moyner.github.io/p/kernels-and-agents/graph_spe11c_hu_1018e829d2cbcdc9.png 480w, https://moyner.github.io/p/kernels-and-agents/graph_spe11c_hu_60936cc2b48c173b.png 1024w"
+loading="lazy"
+alt="Example graph of reservoir variables for SPE11C. Arrows indicate direction of dependency. Each of these entries represent an array that must be resdient on the GPU."
+class="gallery-image"
+data-flex-grow="229"
+data-flex-basis="551px"
+&gt;&lt;/p&gt;
+&lt;p&gt;The starting point of the GPU implementation was thus a design suitable for transferring to GPUs, but that had not been tested on GPUs outside the linear solver for six years. I had performed a few conceptual tests of running the some of the heavier properties on GPUs during work on the OPM Flow GPU implementation, which essentially was application of &lt;code&gt;Adapt&lt;/code&gt; to some large constructors. I also did a few tests on our automatic differentiation tests from Jutul.jl to confirm that it was suitable for GPUs for simple heat equation models. We can then go section for section through the required porting work:&lt;/p&gt;
+&lt;h3 id="properties-on-gpus"&gt;Properties on GPUs
+&lt;/h3&gt;&lt;p&gt;At the outset, properties seemed like the biggest hurdle. JutulDarcy has a large number of secondary variables that cover geothermal, compositional, blackoil, tracers and enhanced oil recovery. Let us take as example one of the CO$_2$-brine mixing density properties that implements the correlation from _Density of aqueous solutions of CO$&lt;em&gt;2$&lt;/em&gt; by J.E. Garcia, 2001:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;span class="lnt"&gt;13
+&lt;/span&gt;&lt;span class="lnt"&gt;14
+&lt;/span&gt;&lt;span class="lnt"&gt;15
+&lt;/span&gt;&lt;span class="lnt"&gt;16
+&lt;/span&gt;&lt;span class="lnt"&gt;17
+&lt;/span&gt;&lt;span class="lnt"&gt;18
+&lt;/span&gt;&lt;span class="lnt"&gt;19
+&lt;/span&gt;&lt;span class="lnt"&gt;20
+&lt;/span&gt;&lt;span class="lnt"&gt;21
+&lt;/span&gt;&lt;span class="lnt"&gt;22
+&lt;/span&gt;&lt;span class="lnt"&gt;23
+&lt;/span&gt;&lt;span class="lnt"&gt;24
+&lt;/span&gt;&lt;span class="lnt"&gt;25
+&lt;/span&gt;&lt;span class="lnt"&gt;26
+&lt;/span&gt;&lt;span class="lnt"&gt;27
+&lt;/span&gt;&lt;span class="lnt"&gt;28
+&lt;/span&gt;&lt;span class="lnt"&gt;29
+&lt;/span&gt;&lt;span class="lnt"&gt;30
+&lt;/span&gt;&lt;span class="lnt"&gt;31
+&lt;/span&gt;&lt;span class="lnt"&gt;32
+&lt;/span&gt;&lt;span class="lnt"&gt;33
+&lt;/span&gt;&lt;span class="lnt"&gt;34
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="kt"&gt;BrineCO2MixingDensities&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="kt"&gt;T&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;:&lt;/span&gt; &lt;span class="kt"&gt;AbstractCompositionalDensities&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;tab&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;T&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;coeffs&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;NTuple&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;Float64&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;BrineCO2MixingDensities&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tab&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;T&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;coefficients&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;37.51&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;−9&lt;/span&gt;&lt;span class="mf"&gt;.585&lt;/span&gt;&lt;span class="n"&gt;e−2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;8.74&lt;/span&gt;&lt;span class="n"&gt;e−4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;−5&lt;/span&gt;&lt;span class="mf"&gt;.044&lt;/span&gt;&lt;span class="n"&gt;e−7&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt; &lt;span class="k"&gt;where&lt;/span&gt; &lt;span class="kt"&gt;T&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="kt"&gt;BrineCO2MixingDensities&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="kt"&gt;T&lt;/span&gt;&lt;span class="p"&gt;}(&lt;/span&gt;&lt;span class="n"&gt;tab&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;coefficients&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nd"&gt;@jutul_secondary&lt;/span&gt; &lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;update_density!&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;rho&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rho_def&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;BrineCO2MixingDensities&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;SimulationModel&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="kt"&gt;D&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;S&lt;/span&gt;&lt;span class="p"&gt;},&lt;/span&gt; &lt;span class="n"&gt;Pressure&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Temperature&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;LiquidMassFractions&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;ix&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="k"&gt;where&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="kt"&gt;D&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;S&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;:&lt;/span&gt;&lt;span class="kt"&gt;CompositionalSystem&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;c1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c4&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rho_def&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;coeffs&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;sys&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;model&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;system&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;l&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;v&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;phase_indices&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;sys&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="k"&gt;in&lt;/span&gt; &lt;span class="n"&gt;ix&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;p&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Pressure&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;T&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Temperature&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;X_co2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;LiquidMassFractions&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;rho_h2o_pure&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rho_co2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rho_def&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;tab&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;p&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;rho_brine&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;co2_brine_mixture_density&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rho_h2o_pure&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X_co2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;rho&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;v&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rho_co2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;rho&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;l&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;rho_brine&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;co2_brine_mixture_density&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;T_kelvin&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;c4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rho_h2o_pure&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;X_co2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;T&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;T_kelvin&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mf"&gt;273.15&lt;/span&gt; &lt;span class="c"&gt;# Relation is in C, input is in Kelvin&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;vol_co2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="n"&gt;e−6&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;c1&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;c2&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;c3&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;c4&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;^&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;rho_liquid_co2_pure&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mf"&gt;44.01e-3&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;vol_co2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;X_h2o&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mf"&gt;1.0&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="n"&gt;X_co2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c"&gt;# Linear volume mixing rule&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;vol&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;X_co2&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;rho_liquid_co2_pure&lt;/span&gt; &lt;span class="o"&gt;+&lt;/span&gt; &lt;span class="n"&gt;X_h2o&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;rho_h2o_pure&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c"&gt;# Return as density&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mf"&gt;1.0&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;vol&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;This is a fairly complicated function that encodes a relationship between named inputs (&lt;code&gt;Pressure&lt;/code&gt;, &lt;code&gt;Temperature&lt;/code&gt;, &lt;code&gt;LiquidMassFractions&lt;/code&gt;) and the density output for a specific type of compositional models. The definition has an internal table for pure phase properties (i.e. brine without CO$_2$, CO$_2$ without vaporized water) that it evaluates. Before the brine density is written to the return array, it is corrected to account for the dissolved CO$_2$ mass fraction.&lt;/p&gt;
+&lt;p&gt;To get this running on the GPU, two changes were needed. I had to add an &lt;code&gt;Adapt&lt;/code&gt; call to automatically generate transfers to GPU, and I had to manually adapt the interpolation type:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;div class="chroma"&gt;
+&lt;table class="lntable"&gt;&lt;tr&gt;&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code&gt;&lt;span class="lnt"&gt; 1
+&lt;/span&gt;&lt;span class="lnt"&gt; 2
+&lt;/span&gt;&lt;span class="lnt"&gt; 3
+&lt;/span&gt;&lt;span class="lnt"&gt; 4
+&lt;/span&gt;&lt;span class="lnt"&gt; 5
+&lt;/span&gt;&lt;span class="lnt"&gt; 6
+&lt;/span&gt;&lt;span class="lnt"&gt; 7
+&lt;/span&gt;&lt;span class="lnt"&gt; 8
+&lt;/span&gt;&lt;span class="lnt"&gt; 9
+&lt;/span&gt;&lt;span class="lnt"&gt;10
+&lt;/span&gt;&lt;span class="lnt"&gt;11
+&lt;/span&gt;&lt;span class="lnt"&gt;12
+&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;
+&lt;td class="lntd"&gt;
+&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-julia" data-lang="julia"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# In JutulDarcy&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;Adapt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="nd"&gt;@adapt_structure&lt;/span&gt; &lt;span class="n"&gt;BrineCO2MixingDensities&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c"&gt;# In Jutul&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;function&lt;/span&gt; &lt;span class="n"&gt;Adapt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;adapt_structure&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;to&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;interpolant&lt;/span&gt;&lt;span class="o"&gt;::&lt;/span&gt;&lt;span class="kt"&gt;BilinearInterpolant&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;BilinearInterpolant&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;Adapt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;adapt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;to&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;interpolant&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;X&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;Adapt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;adapt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;to&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;interpolant&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Y&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;Adapt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;adapt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;to&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;interpolant&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;F&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;Adapt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;adapt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;to&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;interpolant&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;lookup_x&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;Adapt&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;adapt&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;to&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;interpolant&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;lookup_y&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;end&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;&lt;p&gt;That&amp;rsquo;s it! Note that there are no changes to the functions that define the mathematical model for the density. The required changes are only applied to the &lt;em&gt;types&lt;/em&gt; and not to the &lt;em&gt;functions&lt;/em&gt; has two important implications:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;As there are no changes to the functional form, we do not have to force modellers to write relationships in a special manner for it to run on GPUs.&lt;/li&gt;
+&lt;li&gt;Verification of a GPU port is much easier when there are no changes to the functions themselves. If rewriting an expression for GPU introduces subtle changes in behavior, the simulator will still happily simulate the wrong answer, but changes to types will result in compilation errors.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Once I had a working approach for porting individual properties, I set up a small test harness and let Codex with Sol 5.6 work for a few hours fixing and testing the remaining property evaluations during the weekend while I did some carpentry around the house (at least I have a backup career if the coding agents take over completely).&lt;/p&gt;
+&lt;h3 id="equations-on-gpus"&gt;Equations on GPUs
+&lt;/h3&gt;&lt;p&gt;The model equations were also an exercise in using &lt;code&gt;Adapt&lt;/code&gt;. In addition, I let Sol port one of my old codes for fuzing equation evaluation with assembly. This code was not very useful on CPU, where memory is abundant, but on GPU it saves substantial memory. Many parts of the code had to be slightly modified to handle asynchronous operations and transfer to and from GPUs during input and output, but there were no changes to the outer API or the governing equations themselves. As with the properties, this means that the verification process is limited to checking if the code compiles and runs rather than going over every single functional expression.&lt;/p&gt;
+&lt;h3 id="convergence-and-updates-on-gpus"&gt;Convergence and updates on GPUs
+&lt;/h3&gt;&lt;p&gt;These functions were straightforward to transfer to GPUs. Several fused for-loops that computed several things at once had to be cleaned up. In my opinion, adding GPU support reduced the complexity of this part of the code.&lt;/p&gt;
+&lt;h3 id="linear-solvers-on-gpus"&gt;Linear solvers on GPUs
+&lt;/h3&gt;&lt;p&gt;I have had the GPU implementation on my TODO-list for a long time. The largest barrier was always the linear solver, which usually amounts to a significant amount of the model runtime. JutulDarcy uses a mixture of &lt;code&gt;hypre&lt;/code&gt; (which has Julia bindings for CPU/MPI and is hassle-free to bundle), a hand-written block ILU(0) and standard Julia sparse functions. If I wanted a vendor-neutral implementation, my options were:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Add support for the vendor libraries. We already support CuSPARSE and AMGX for CUDA, and similar implementations are available for AMDGPU (with the rolls-off-your-tongue name &lt;a class="link" href="https://rocm.docs.amd.com/projects/rocALUTION/en/develop/what-is-rocalution.html" target="_blank" rel="noopener"
+&gt;rocALUTION&lt;/a&gt;). However, AMGX is not actively maintained, only builds on Linux and the performance is not as good as one would hope from a native GPU solver.&lt;/li&gt;
+&lt;li&gt;Build support for &lt;code&gt;hypre&lt;/code&gt; with different GPU backends, and add this support to the Julia package. This definitely the most practical option that uses pre-existing libraries and still on my TODO list. However, it is a fair bit of engineering efforts to build the different GPU variants and integrate them with the Julia binary builder system, and figuring out compilation options is definitely not my best skill.&lt;/li&gt;
+&lt;li&gt;Write our own AMG and preconditioner library from scratch using KernelAbstractions as the execution model.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;One problem with reservoir simulation is that the linear solver does a lot of repeat work for successive solves of &amp;ldquo;almost&amp;rdquo; the same linear system, which is not well supported in the open source AMG solvers. I have written a fair number of simple AMG codes on CPU before, but I was a bit hesitant to do this myself. Existing libraries, like hypre, have been hardened over decades. However, after thinking a bit about my options, I saw that there was an opportunity to make a limited library that:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Focused on reuse of hierarchies and memory for the repeated solves of similar linear systems with the same sparsity structure&lt;/li&gt;
+&lt;li&gt;Was limited to scalar AMG with the most useful coarsening variants&lt;/li&gt;
+&lt;li&gt;Works in parallell on a single node (i.e. no multi-node or multi-GPU support)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;This is a quite limited subset of what most &lt;code&gt;hypre&lt;/code&gt; supports, but it sufficiently covers the needed routines for solving flow systems.&lt;/p&gt;
+&lt;p&gt;This has been an on-and-off project for me. The first attempt can be found in the form of &lt;a class="link" href="https://github.com/SINTEF-agentlab/Draugr.jl" target="_blank" rel="noopener"
+&gt;Draugr.jl&lt;/a&gt; which was intended primarily to test the capabilities of agents, as no code was written by humans in that project. The performance was quite good, but after many agent sessions the code was far too expansive to integrate directly into JutulDarcy. So I set up a test fixture with exported matrices that allowed the code to run tests against hypre and our own smoothers, wrote a specification with a proposed API and let Sol work for several sessions. The resulting library is quite small - about 4000 lines of code compared to Draugr&amp;rsquo;s 12290 lines of code. The AMG is very similar to the best performing options from hypre, to the extent that I would consider the AMG implementation as a derived work of hypre.&lt;/p&gt;
+&lt;p&gt;The nice thing about preconditioners is that it is very easy to verify their performance by checking if the application of the preconditioner $P$ gives a new update $x = P^{-1}b$ that reduces the linear residual $| Ax - b |_2$ at a reasonable speed for sample systems $A$. As the interface to the simulator is quite limited and easy to test, I am comfortable letting an agent work on this part without going over every line of code. In the future, it is likely that we can switch to builds of hypre for different devices. Jutul also has the option to use vendor libraries where preconditioners exist, but having a Julia native preconditioner means that we can automatically generalize support of JutulDarcy to any other backend that may appear in the future &lt;sup id="fnref:3"&gt;&lt;a href="#fn:3" class="footnote-ref" role="doc-noteref"&gt;3&lt;/a&gt;&lt;/sup&gt;&lt;/p&gt;
+&lt;h2 id="putting-it-all-together"&gt;Putting it all together
+&lt;/h2&gt;&lt;p&gt;The results are a much faster solver for both forward and backward solves. This applies not only to GPU, but also to CPU, where we can now finally launch very fast threaded simulations in an interactive manner. The ergonomics of running with threads versus MPI for interactive work cannot be understated, as MPI requires manually launching a new set of processes that then produce output on disk.&lt;/p&gt;
+&lt;p&gt;The benchmark numbers indicate that a unified implementation based on automatic differentiation does not sacrifice anything in terms of fast performance on different devices. In a sense, we can have our cake and eat it too!&lt;/p&gt;
+&lt;p&gt;I finally note that the SPE10 benchmark is a classical benchmark that is often (mis-)used. The simulation scenario is very simple and most of the complexity comes from the high heterogeneity in the model. As most robust simulators can take very large time-steps in this setting, total simulation times for the case comes down to how aggressive time-stepping you make use of. Looking at the per-iteration breakdown is more illustrative as it removes the effect of time-step selection and nonlinear tolerances.&lt;/p&gt;
+&lt;h2 id="working-with-agents"&gt;Working with agents
+&lt;/h2&gt;&lt;p&gt;I have found a good rhythm with agents where I use a mixture of VSCode with the agent to do pair-programming and the dedicated application for more open-ended tasks where I want the agent to investigate autonomously and then have a look at the outcomes myself at a later stage. The changes to the main code is an example of the former where I want to inspect every line, while the preconditioners fall in the latter category.&lt;/p&gt;
+&lt;p&gt;Frontier models like Sol are very good at doing software engineering tasks, but my experience is that their efficiency more or less mirrors the code they are working against. If a task was not easy to do in the first place, they have a tendency to engineer hacks that a human would likely not bother writing. I suppose this comes from the model&amp;rsquo;s reinforcement learning that emphasizes a working solution highly. Another capability that likely comes from the same training is a greatly improved efficiency for agents to run smaller subsets of code to figure out issues and performance.&lt;/p&gt;
+&lt;p&gt;The models now quickly build minimal tests, extract pieces of code into local fixtures and make reports on performance. This makes the models much more efficient at practical scientific software engineering than at the start of 2026, even if the reasoning quality has not increased by the same magnitude. After an agent has worked for several hours, their working directory will be littered with code tests, log files and other artifacts. I suspect that even if the models stay at the same level in terms of reasoning quality, there is a lot more to be gained in how they are applied. Exciting times ahead&amp;hellip;&lt;/p&gt;
+&lt;h2 id="concluding-remarks"&gt;Concluding remarks
+&lt;/h2&gt;&lt;p&gt;Being able to run everything on GPUs is definitely a nice milestone, but I consider the real advantage of this work to be a future-proofing. The current GPU prices may make it hard to justify when you can easily pay more than a 100,000 USD for a top of the line GPU, versus a tenth of that for e.g. a Threadripper CPU. Still, running models on hardware that is both much more parallel and more restricted in terms of instruction sets seems to be the future. With KernelAbstractions as the foundation, we are ready to test whatever comes next.&lt;/p&gt;
+&lt;div class="footnotes" role="doc-endnotes"&gt;
+&lt;hr&gt;
+&lt;ol&gt;
+&lt;li id="fn:1"&gt;
+&lt;p&gt;There were a fair number of packages back when I started &amp;ndash; now I have lost count. Fortunately, there is &lt;a class="link" href="https://github.com/JuliaDiff/DifferentiationInterface.jl" target="_blank" rel="noopener"
+&gt;DifferentionInterface.jl&lt;/a&gt; to handle the interfacing now&amp;hellip;&amp;#160;&lt;a href="#fnref:1" class="footnote-backref" role="doc-backlink"&gt;&amp;#x21a9;&amp;#xfe0e;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:2"&gt;
+&lt;p&gt;&lt;a class="link" href="https://github.com/JuliaGPU/KernelAbstractions.jl/releases/tag/v0.1.0" target="_blank" rel="noopener"
+&gt;The first release of KernelAbstractions.jl was March 9th in 2020&lt;/a&gt;. This is, for other reasons, the start of a period where a lot of people spent time indoors in front of computers.&amp;#160;&lt;a href="#fnref:2" class="footnote-backref" role="doc-backlink"&gt;&amp;#x21a9;&amp;#xfe0e;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li id="fn:3"&gt;
+&lt;p&gt;Like Metal.jl, which will require work on using 32 bits types throughout the code.&amp;#160;&lt;a href="#fnref:3" class="footnote-backref" role="doc-backlink"&gt;&amp;#x21a9;&amp;#xfe0e;&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;</description></item><item><title>JutulGPT - Agent-based reservoir simulation with JutulDarcy.jl</title><link>https://moyner.github.io/p/agentic-simulation/</link><pubDate>Mon, 08 Sep 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/agentic-simulation/</guid><description>&lt;img src="https://moyner.github.io/p/agentic-simulation/agent.png" alt="Featured image of post JutulGPT - Agent-based reservoir simulation with JutulDarcy.jl" /&gt;&lt;h2 id="motivation"&gt;Motivation
+&lt;/h2&gt;&lt;p&gt;&lt;em&gt;This blog post is based on work together with Elling Svee (who did most of the coding!), Knut-Andreas Lie, Kjetil Lye Olsen and Jakob Torben. &lt;a class="link" href="https://github.com/ellingsvee/JutulGPT" target="_blank" rel="noopener"
+&gt;code is available on GitHub&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;There is a fair bit of hype around large language model (LLM) agents at the moment, and discussions about what they can be used for. LLM-based agents are, in the broadest sense, essentially LLMs that are given a set of tools that can be used to perform tasks. Tools are typically a function call together with metadata (description of usage, purpose, etc) and allows a LLM program to perform tasks by estimating what the appropriate tool should be whenever a text response is insufficient.&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://moyner.github.io/p/agentic-simulation/agent.png"
+width="1108"
+height="399"
+srcset="https://moyner.github.io/p/agentic-simulation/agent_hu_9e17a92e263bde1c.png 480w, https://moyner.github.io/p/agentic-simulation/agent_hu_f4da99059095b53d.png 1024w"
+loading="lazy"
+alt="Conceptual flowchart of how a simple agent can chain different tools to produce output - by Elling Svee"
+class="gallery-image"
+data-flex-grow="277"
+data-flex-basis="666px"
+&gt;&lt;/p&gt;
+&lt;p&gt;At the &lt;a class="link" href="https://www.sintef.no/en/digital/departments/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/" target="_blank" rel="noopener"
+&gt;Applied Computational Science group&lt;/a&gt;, we work extensively with numerical simulation of physical processes. We are developing open source software for reservoir simulation (e.g. &lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+&gt;MRST&lt;/a&gt;, &lt;a class="link" href="https://opm-project.org/" target="_blank" rel="noopener"
+&gt;OPM Flow&lt;/a&gt; and &lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy&lt;/a&gt;.jl) as well as software for battery simulation and many other applications. In this post, we will limit the discussion to reservoir simulation, but most of the lessions apply to other types of modelling as well.&lt;/p&gt;
+&lt;p&gt;We are interested in exploring how agents can be used to set up and interact with complex simulation models, examplified by a reservoir simulator. We can break down a basic reservoir simulation workflow into four steps:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Define the model itself: Setting up a mesh, populating it with static properties (e.g. permeability/porosity), defining a fluid model and setting up wells, aquifers and other types of boundary conditions.&lt;/li&gt;
+&lt;li&gt;Set up a scenario to simulate: Pick operating controls/limits for the wells, time-steps to solve before simulating with the approprioate numerical tolerances, linear solver and solution strategy.&lt;/li&gt;
+&lt;li&gt;Perform analysis on the results, for example by computing the total thermal energy produced over a given number of years, examining the amount of CO2 stored in a CCS model, and so on.&lt;/li&gt;
+&lt;li&gt;Based on the analysis and goal, go back and redo steps 1-3 to improve the setup by introducing additional features, increasing grid resolution, adding tracers, moving wells, etc.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Reservoir simulators are complex pieces of software, and iterating between these four steps requires detailed knowledge of:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Reservoir engineering: &lt;em&gt;What physical process am I modelling?&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;Reservoir simulation: &lt;em&gt;What is the right choice of physics and resolution to capture the process?&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;Specific software know-how: &lt;em&gt;How do I make the available software do what I want? What are the limitations? How do I transfer data between applications?&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Each topic can be a daunting field of study in itself, so there exists a substantial challenge when it comes to making these modelling workflows accessible, especially for experts who want to test a new code for an existing application. This workflow sketch is also intentionally a bit simplistic, and most experienced reservoir simulation readers will spot some missing details (where are the ensembles? What about seismic interpretation? Where do you get the fluid data? What method do you use for populating the properties?).&lt;/p&gt;
+&lt;p&gt;I have personally no expectation that LLMs are going to be replacing &amp;ldquo;PhD level intelligence&amp;rdquo; any time soon - but they seem to have potential as a research partner that can perform time-consuming tasks and condense information from documentation and technical sources very quickly. The goal is not to stop writing code, but to spend the time on the code that really matters. For this reason, we have an internal activity targeted towards use of LLMs with simulators. The goal is to allow a LLM to help with setting up simulations, looking up documentation and performing task-specific coding in steps 1 to 4 above.&lt;/p&gt;
+&lt;p&gt;For more information on the high level goals of this activity, have a look at the SINTEF page on &lt;a class="link" href="https://www.sintef.no/en/digital/departments/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/discussing-with-your-simulator/" target="_blank" rel="noopener"
+&gt;Discussing with your simulator&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id="building-an-agent-for-reservoir-simulation"&gt;Building an agent for reservoir simulation
+&lt;/h2&gt;&lt;p&gt;The best way to get started with technology is to build something, so this year we allocated one of our many talented summer student towards building a prototype agent for reservoir simulation. Up front, we knew that two months were unlikely to build the agents of our dreams, so the scope was initially limited to steps 1/2, i.e. setting up simulation models rather than analysis of the results.&lt;/p&gt;
+&lt;h3 id="picking-a-code"&gt;Picking a code
+&lt;/h3&gt;&lt;p&gt;We also had the issue of &lt;em&gt;what&lt;/em&gt; code was to be used. We have three open source reservoir simulators that were candidates:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+&gt;MRST&lt;/a&gt; is a MATLAB-based toolbox for reservoir simulation and uses scripts to set up models, and has been around for a long time with a large number of different modules&lt;/li&gt;
+&lt;li&gt;&lt;a class="link" href="https://opm-project.org/" target="_blank" rel="noopener"
+&gt;OPM Flow&lt;/a&gt; is a C++ based reservoir simulator that is run by industry standard input files&lt;/li&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy.jl&lt;/a&gt; is a Julia-based reservoir simulator that also uses scripts as the primary setup&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;We considered working directly on the industry standard .DATA files, as all three codes can set up models this way, but these files are both enormously complex, and are limited to the model setup as analysis is usually done in another language or GUI anyway. We selected JutulDarcy.jl for two reasons:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/sintefmath/JutulDarcy.jl" target="_blank" rel="noopener"
+&gt;JutulDarcy.jl&lt;/a&gt; is easy to call from within an agent framework, since Julia is pretty easy to both install and call in a virtual machine.&lt;/li&gt;
+&lt;li&gt;&lt;a class="link" href="https://github.com/SINTEF-AppliedCompSci/MRST" target="_blank" rel="noopener"
+&gt;MRST&lt;/a&gt; has a large number of modules that have been written over the last 15 years, with code styles, interfaces and documentation that varies from module to module. This wide feature set is very valuable to researchers, but the magnitude means that it is less useful to a LLM, which has a limited context window and has a hard time with a non-unified coding style across modules.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id="software-stack"&gt;Software stack
+&lt;/h3&gt;&lt;p&gt;After a bit of testing with smaller tools (like &lt;a class="link" href="https://github.com/svilupp/PromptingTools.jl" target="_blank" rel="noopener"
+&gt;PromptingTools.jl&lt;/a&gt;), we ended up using &lt;a class="link" href="https://github.com/langchain-ai/langchain" target="_blank" rel="noopener"
+&gt;LangChain&lt;/a&gt; as the framework. We picked LangChain since it seemed to be fairly mature, featured and could easily use locally hosted LLMs.&lt;/p&gt;
+&lt;p&gt;The &lt;a class="link" href="https://github.com/ellingsvee/JutulGPT" target="_blank" rel="noopener"
+&gt;code is available on GitHub&lt;/a&gt; for those who want to dig into the details.&lt;/p&gt;
+&lt;p&gt;Elling has made two interfaces for JutulGPT: A &lt;a class="link" href="https://github.com/ellingsvee/JutulGPT-GUI" target="_blank" rel="noopener"
+&gt;chat-based frontend&lt;/a&gt; based on the &lt;a class="link" href="https://github.com/langchain-ai/agent-chat-ui" target="_blank" rel="noopener"
+&gt;LangGraph Agent Chat UI&lt;/a&gt; that should be familiar if you have used e.g. ChatGPT, and a dedicated command line interface (CLI). The CLI is recommended if you are familiar with programming.&lt;/p&gt;
+&lt;p&gt;&lt;img src="https://moyner.github.io/p/agentic-simulation/jutulgpt_cli.png"
+width="3456"
+height="2159"
+srcset="https://moyner.github.io/p/agentic-simulation/jutulgpt_cli_hu_91d6e1ca55cccd99.png 480w, https://moyner.github.io/p/agentic-simulation/jutulgpt_cli_hu_7d6cc4b64d1afd8c.png 1024w"
+loading="lazy"
+alt="Example of the command line interface (CLI)"
+class="gallery-image"
+data-flex-grow="160"
+data-flex-basis="384px"
+&gt; &lt;img src="https://moyner.github.io/p/agentic-simulation/jutulgpt_web.png"
+width="917"
+height="921"
+srcset="https://moyner.github.io/p/agentic-simulation/jutulgpt_web_hu_a3a875078431ec86.png 480w, https://moyner.github.io/p/agentic-simulation/jutulgpt_web_hu_7f82a27a8d5de2e1.png 1024w"
+loading="lazy"
+alt="Example of the web/chat-based interface"
+class="gallery-image"
+data-flex-grow="99"
+data-flex-basis="238px"
+&gt;&lt;/p&gt;
+&lt;h3 id="tools"&gt;Tools
+&lt;/h3&gt;&lt;p&gt;An agent is defined by the available tools. Here is a brief rundown of the most important tools that Elling implemented.&lt;/p&gt;
+&lt;h4 id="retrieval-tools"&gt;Retrieval tools
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;grep_search&lt;/code&gt;: Perform a text search in the documentation, returning a list of matches. The agent can then read the files containing the matches.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;retrieve_function_documentation&lt;/code&gt;: Get the docstring of a function, using the Julia &lt;code&gt;@doc&lt;/code&gt; macro.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;retrieve_examples&lt;/code&gt;: Performs a semantic search to find relevant JutulDarcy examples stored in a
+vector database. Full examples are embedded, which helps generate code for complete simulations.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id="code-execution-tools"&gt;Code execution tools
+&lt;/h4&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;run_linter&lt;/code&gt;: Run static analysis on generated code, verifying if it is valid Julia code that calls existing functions (but does not guarantee that the code actually runs).&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;run_julia_code&lt;/code&gt;: Run the code and return any error messages.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;execute_terminal_command&lt;/code&gt;: Exactly what it says on the tin.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In addition, there are a set of tools for reading/writing to disk and accessing the file system.&lt;/p&gt;
+&lt;h3 id="human-in-the-loop"&gt;Human-in-the-loop
+&lt;/h3&gt;&lt;p&gt;LLMs, especially those that can run locally, often make mistakes. Elling made a choice to include an optional &amp;ldquo;human-in-the-loop&amp;rdquo; feature. I think his report put it quite nicely, so I am just going to quote him directly:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Providing the model with more tools can lead to more complex behavior. This often results in the model acting more autonomously, which can be both an advantage and a challenge. Smaller language models in particular tend to struggle with complex tasks. In my experience, they sometimes choose the wrong tools, get stuck on minor errors, or generate code that does not meet the user’s requirements. One way to address these issues is to include human feedback in the agent’s decision-making process, a method commonly referred to as human-in-the-loop (HITL). This approach allows users to provide input and corrections, ensuring that the agent’s actions align with their expertise.&lt;/p&gt;
+&lt;p&gt;I have implemented HITL-interactions in the workflow and in many of the available tools. For example, when the agent retrieves information from the JutulDarcy documentation or examples, the user can review and filter the retrieved content. When the agent generates code based on user requirements, it presents the code to the user for review before execution. This gives the user an opportunity to make manual adjustments or suggest improvements.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id="experiences"&gt;Experiences
+&lt;/h2&gt;&lt;h3 id="general"&gt;General
+&lt;/h3&gt;&lt;p&gt;The first exploratory attempts used locally hosted LLM models together with a &amp;ldquo;one-shot&amp;rdquo; approach to generate all the code requested by the user where the entire script would be set up from a single query. This was not very successful, both because the self-hosted models on a normal consumer grade GPU are quite limited, and because generating a full example in a single go does not seem productive. The agent will either retrieve an example unmodified from the examples, or it will hallucinate non-working code.&lt;/p&gt;
+&lt;p&gt;In addition, even with GPT4.1, the one-shot approach had a tendency to include code in nonsensical ways. One example is the treatment of units: Realistic reservoir simulation in JutulDarcy.jl means setting up realistic units, and we ship the code with conversion factors for the standard units used in petroleum engineering, which is readily documented by usage in the examples. However, this is a bit underdocumented in the structured documentation. As a consequence, the agent would often insert usage of the &lt;a class="link" href="https://github.com/JuliaPhysics/Unitful.jl" target="_blank" rel="noopener"
+&gt;Unitful.jl&lt;/a&gt; library in the code. Unitful is a library for sending &lt;em&gt;typed&lt;/em&gt; units through programs and does not contain any of the oil field units, leading to confusing errors.&lt;/p&gt;
+&lt;p&gt;The generated code became a lot better when the agent was allowed to iterate on the code before presenting it to the user, and make use of static linting. This removed a lot of the issues with hallucinated code, as the static linting will make it aware of what functions are actually available in the environment. This does burn more tokens, however, but it seems to be necessary to iterate to produce good results.&lt;/p&gt;
+&lt;h3 id="documentation-and-errors-what-does-the-agent-use"&gt;Documentation and errors: What does the agent use?
+&lt;/h3&gt;&lt;p&gt;The experience from MRST and JutulDarcy.jl usage is that typical users go straight for the examples and barely read the main documentation. We therefore focus on having long-form end-to-end example scripts (&lt;a class="link" href="https://sintefmath.github.io/JutulDarcy.jl/dev/examples/workflow/fully_differentiable_geothermal" target="_blank" rel="noopener"
+&gt;example&lt;/a&gt;) that can be a starting point for users. It was initially a bit surprising to see that these examples were not so useful for the LLM - the individual docstrings and text-based documentation were much more important to get good results. However, this does make sense, as the smaller parts are more digestable than a long example the LLM has a hard time to break down into chunks. We could perhaps make the examples more digestible by splitting it up. Similarly, writing high-quality error messages is worthwhile, as this is how the agent self-corrects during the write-evaluate loop.&lt;/p&gt;
+&lt;h3 id="surprise-1-the-negative-well-radius"&gt;Surprise 1: The negative well radius
+&lt;/h3&gt;&lt;p&gt;LLMs can often produce a lot of garbage code when given free reign, however, there are moments when they appear to be magic. One such instance happened during testing, when Kjetil had made a standardized prompt for testing different models, asking the model to set up a quarter-five-spot oil-water injection case on the unit square with 10 by 10 cells. This is a typical &amp;ldquo;hello world&amp;rdquo; reservoir simulation, if it were not for the fact that the domain is the unit square. If the mesh has unit length discretized by 10 cells, each cell is 0.1 meters wide, which is very small. In fact, it is smaller than the default diameter of the well in that grid block. This fact leads to a negative Peaceman factor - a standard analytical expression for the connection factor between a large grid block and the well inside it - and an error will occur.&lt;/p&gt;
+&lt;p&gt;The surprise? The LLM quickly explains exactly how this occurs and how to fix it by hinting that the size of the domain is not realistic. Somewhere in all the model weights there are some digested parts of classical reservoir simulation texts, and the retrieval into the right context feels like magic (I have a lot of old e-mails from students asking about the negative radius).&lt;/p&gt;
+&lt;h3 id="surprise-2-mpi-programming-for-agents"&gt;Surprise 2: MPI-programming for agents
+&lt;/h3&gt;&lt;p&gt;During user testing, one of my colleagues asked the agent to convert an existing simulation script into a MPI (distributed memory parallel) run. The agent managed to read the documentation, set up an environment with the required packages and modify the script in exactly the right places. It also set up a bash script to launch Julia with the right number of processes, pointing to the correct MPI binary. While this is documented in the &lt;a class="link" href="https://sintefmath.github.io/JutulDarcy.jl/dev/man/advanced/mpi" target="_blank" rel="noopener"
+&gt;JutulDarcy.jl documentation on parallelism&lt;/a&gt;, the surgical modification of a user-provided script left me very impressed.&lt;/p&gt;
+&lt;h2 id="recommendations--conclusions"&gt;Recommendations &amp;amp; conclusions
+&lt;/h2&gt;&lt;p&gt;Although they are far from perfect programmers, agents seem to have significant potential for working with complex simulation codes. Here are a few of our (speculative) recommendations if you want to attempt something similar:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Improve your docstrings and error messages as much as possible, and make these available to the agent. Make error messages for nonsensical inputs as early as possible rather than during the final simulation call (for example: Negative permeability is an error when input - even if it is a valid floating point number).&lt;/li&gt;
+&lt;li&gt;Documentation should be smaller digestible chunks for the best results.&lt;/li&gt;
+&lt;li&gt;Static analysis of code can save a lot of tokens and frustration&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Even as the project was limited to only two months, we believe the resulting code can be quite useful, both as a novel tool for learning how to use JutulDarcy for reservoir simulation, and how to build an agent workflow for a simulation code. We encourage anyone who is interested to dig through or even run the code. The code is released under a permissive MIT license, just like JutulDarcy.jl itself.&lt;/p&gt;
+&lt;h3 id="links-to-source-code-and-other-material"&gt;Links to source code and other material
+&lt;/h3&gt;&lt;p&gt;&lt;a class="link" href="https://github.com/ellingsvee/JutulGPT" target="_blank" rel="noopener"
+&gt;Source&lt;/a&gt;
+&lt;a class="link" href="https://github.com/ellingsvee/JutulGPT/blob/main/src/jutulgpt/prompts.py" target="_blank" rel="noopener"
+&gt;Prompts&lt;/a&gt;
+&lt;a class="link" href="main.pdf" &gt;Additional details are found in Elling&amp;rsquo;s report.&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;If you do want to run the code: Please note that as the code can in principle execute terminal commands, we recommend that you carefully read the outputs before executing, ideally in some sort of VM.&lt;/p&gt;</description></item><item><title>A first post</title><link>https://moyner.github.io/p/first-post/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/first-post/</guid><description>&lt;img src="https://moyner.github.io/p/first-post/m.png" alt="Featured image of post A first post" /&gt;&lt;p&gt;Welcome to my website. I have migrated to Hugo from Google Sites to make the website easier to update, and migrate if need be. In the future, posts about my research and work may appear here - or it may not. Stay tuned!&lt;/p&gt;</description></item><item><title>Running a reservoir simulation on my phone</title><link>https://moyner.github.io/p/phone-simulation/</link><pubDate>Thu, 31 Jul 2025 00:00:00 +0000</pubDate><guid>https://moyner.github.io/p/phone-simulation/</guid><description>&lt;img src="https://moyner.github.io/p/phone-simulation/header.png" alt="Featured image of post Running a reservoir simulation on my phone" /&gt;&lt;p&gt;The trend has been to move compute heavy workloads over into the cloud, but today I did the opposite and put it in my pocket! Using the new &lt;a class="link" href="https://www.androidpolice.com/android-15-linux-terminal-app/" target="_blank" rel="noopener"
+&gt;Android 16 Linux terminal&lt;/a&gt; on my Pixel, I’m running a reservoir simulation on my phone 😎&lt;/p&gt;
+&lt;p&gt;The Linux terminal is a proper Debian setup, so I naturally installed julia and JutulDarcy to test the computational performance. The setup was fairly straightforward: Install &lt;a class="link" href="https://github.com/JuliaLang/juliaup" target="_blank" rel="noopener"
+&gt;juliaup&lt;/a&gt; and add the latest release. I then added JutulDarcy and HYPRE to the default environment. The precompilation crashed towards the end of the setup - perhaps due to the screen going to sleep - but once I restarted Julia, everything ran nicely.&lt;/p&gt;
+&lt;p&gt;On a small SPE9 case, it is surprisingly performant with a runtime comparable to that of a laptop. This case only has 9000 cells and ~18k degrees of freedom, so I also ran the larger OLYMPUS 1 case (~200k cells, ~400k degrees of freedom), runtime was roughly 2x that of my laptop when both devices were using a single thread.&lt;/p&gt;
+&lt;p&gt;I don’t foresee that I’m going to switch to my phone for running simulations any time soon, but it is impressive to see how powerful phone CPUs have gotten. ARM support is also pretty good in Julia, probably a side effect of macOS support that now also uses ARM. If you want to get reasonable performance you will have to keep the screen on and the Linux app open - it appears that the Android process manager heavily priortizes the active application.&lt;/p&gt;
+&lt;div class="video-wrapper"&gt;
+&lt;video
+controls
+src="pixel-run.mp4"
+&gt;
+&lt;p&gt;
+Your browser doesn't support HTML5 video. Here is a
+&lt;a href="pixel-run.mp4"&gt;link to the video&lt;/a&gt; instead.
+&lt;/p&gt;
+&lt;/video&gt;
+&lt;/div&gt;</description></item></channel></rss>
