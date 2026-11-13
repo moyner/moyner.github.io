@@ -13,7 +13,11 @@ math: true
 
 ## Introduction
 
-I have just hit the merge button on the 0.4.1 release of JutulDarcy. The biggest change since the 0.3 series is full support for executing models on GPUs. We already had GPU support for linear solves on CUDA through NVIDIAs CuSPARSE and AMGX libraries, but the new release moves all compute-intensive parts to the GPUs in a single unified implementation that can execute on AMD GPUs, CUDA GPUs, OpenCL and different flavors of CPUs, all written in Julia.
+
+I have just hit the merge button on the 0.4.1 release of [JutulDarcy](https://github.com/sintefmath/JutulDarcy.jl). There is a lot of nice improvements in the [0.4.0](https://github.com/sintefmath/JutulDarcy.jl/releases/tag/v0.4.0) and [0.4.1](https://github.com/sintefmath/JutulDarcy.jl/releases/tag/v0.4.1) releases, but the biggest change since the 0.3 series is full support for executing models on GPUs. We already had GPU support for linear solves on CUDA through NVIDIAs CuSPARSE and AMGX libraries, but the new release moves all compute-intensive parts to the GPUs in a single unified implementation that can execute on AMD GPUs, CUDA GPUs, OpenCL and different flavors of CPUs, all written in Julia.
+
+{{< video src="8c.mp4" >}}
+> Example of a 300 by 300 mesh eeight-pseudocomponent Safah fluid from [Hearn and Whitson, SPE 29115](https://doi.org/10.2118/29115-MS) in a quarter-five-spot displacement running on the GPU.
 
 This post is written for those who are interested in at least one of the following:
 
@@ -26,19 +30,37 @@ This post is intended to be read by readers who may not be familiar with all of 
 
 ### I don't want to read, I want numbers
 
-- SPE10 (193 Newtons) in 12 seconds on a GTX 4080. On a Blackwell card this drops to under 8 seconds, with a single evaluation of properties and assembly taking less than 2 ms for the entire model.
-- Solving a 2 million cell thermal SPE11b case uses xx ms per complete iteration
-- The 8 component [Underground Hydrogen Benchmark study](https://www.ite.tu-clausthal.de/en/research/subsurface-energy-and-gas-storage/uhs-benchmark-study) (316 steps, 600 Newtons) runs in 50 seconds with the flash running on GPU.
+Ok, then! Reported numbers are for a double precision solve with linear algebra in single precision and FGMRES as the outer solver.
 
-Reported numbers are for a double precision solve with linear algebra in single precision and FGMRES as the outer solver.
+#### SPE10
+
+![SPE10, logpermx](spe10.png)
+
+SPE10 (193 Newtons) in 12 seconds on a GTX 4080. On a Blackwell card this drops to under 8 seconds, with a single evaluation of properties and assembly taking less than 2 ms for the entire model.
+
+#### SPE11
+
+Solving a 2 million cell thermal [SPE11b](https://www.spe.org/en/csp/) case uses 110 ms per complete iteration, where each property and assembly pass is less than 25 ms.
+
+#### Hydrogen storage
+
+The 8 component [Underground Hydrogen Benchmark study](https://www.ite.tu-clausthal.de/en/research/subsurface-energy-and-gas-storage/uhs-benchmark-study) (316 steps, 600 Newtons) runs in 50 seconds with the flash running on GPU. Here is a video in JutulDarcy's viewer:
+
+{{< video src="h2.mp4" >}}
+
+#### Real-field models
+
+I cannot share too much about confidential models, but one example is a black-oil model with approximately 100 wells and 200,000 cells with 20 years of history that now runs in 70 seconds over 8 minutes on CPU. So even moderately sized models with a lot of smaller time-steps get improved performance.
 
 ### JutulDarcy - Reservoir simulation in Julia
+
+JutulDarcy is a toolkit for loading, visualizing, modifying, building, simulating and optimizing reservoir simulation models. It is used extensively in our research, and we release it as open source under a permissive license.
 
 I started what eventually became Jutul.jl (automatic differentiation-based nonlinear solvers for discretized PDEs) and JutulDarcy.jl (reservoir simulation with Jutul.jl as the engine) back in 2020 with three goals:
 
 1. Learn Julia well enough to confidently use it in ongoing projects at SINTEF _(a success! I now use Julia a lot, as do many of my colleagues.)_
 2. Explore the potential for fast automatic differentiation of PDEs using the many AD packages in the Julia ecosystem[^1] _(definitely a success, even if we had to write a lot of code to get there)_
-3. Assess the potential for "write once, execute everywhere" GPU/CPU parallelism that was emerging through the then nascent `KernelAbstractions` package[^2] _(...it took six years, but we got there in the end...)_
+3. Assess the potential for "write once, execute everywhere" GPU/CPU parallelism that was emerging through the then nascent [`KernelAbstractions`](https://github.com/JuliaGPU/KernelAbstractions.jl) package[^2] _(...it took six years, but we got there in the end...)_
 
 The initial version of the code contained AD solves for single and multiphase immiscible flow without any wells running on both CPU and GPU. Back in 2020, writing and testing kernels required a working GPU device, and the developer experience for kernel programming was very rough around the edges, with incomprehensible error messages and frequent crashes when launching kernels that gave errors. I made the decision to instead focus on differentiablity and high performance on the CPU. In the main paper ["JutulDarcy.jl - a fully differentiable high-performance reservoir simulator based on automatic differentiation"](https://link.springer.com/article/10.1007/s10596-025-10366-6), the GPU results are limited to the linear solvers for NVIDIA devices via CuSPARSE/AMGX vendor libraries. These do give noticable performance benefits, but having only the linear solver on GPU means that there is a lot of memory traffic between the device and host during each solve.
 
@@ -445,13 +467,15 @@ I finally note that the SPE10 benchmark is a classical benchmark that is often (
 
 I have found a good rhythm with agents where I use a mixture of VSCode with the agent to do pair-programming and the dedicated application for more open-ended tasks where I want the agent to investigate autonomously and then have a look at the outcomes myself at a later stage. The changes to the main code is an example of the former where I want to inspect every line, while the preconditioners fall in the latter category.
 
-Frontier models like Sol are very good at doing software engineering tasks, but my experience is that their efficiency more or less mirrors the code they are working against. If a task was not easy to do in the first place, they have a tendency to engineer hacks that a human would likely not bother writing. I suppose this comes from the model's reinforcement learning that emphasizes a working solution highly. Another capability that likely comes from the same training is a greatly improved efficiency for agents to run smaller subsets of code to figure out issues and performance. The models now quickly build minimal tests, extract pieces of code into local fixtures and make reports on performance. This makes the models much more efficient at practical scientific software engineering than at the start of 2026, even if the reasoning quality has not increased by the same magnitude. After an agent has worked for several hours, their working directory will be littered with code tests, log files and other artifacts. I suspect that even if the models stay at the same level in terms of reasoning quality, there is a lot more to be gained in how they are applied. Exciting times ahead...
+Frontier models like Sol are very good at doing software engineering tasks, but my experience is that their efficiency more or less mirrors the code they are working against. If a task was not easy to do in the first place, they have a tendency to engineer hacks that a human would likely not bother writing. I suppose this comes from the model's reinforcement learning that emphasizes a working solution highly. Another capability that likely comes from the same training is a greatly improved efficiency for agents to run smaller subsets of code to figure out issues and performance.
+
+The models now quickly build minimal tests, extract pieces of code into local fixtures and make reports on performance. This makes the models much more efficient at practical scientific software engineering than at the start of 2026, even if the reasoning quality has not increased by the same magnitude. After an agent has worked for several hours, their working directory will be littered with code tests, log files and other artifacts. I suspect that even if the models stay at the same level in terms of reasoning quality, there is a lot more to be gained in how they are applied. Exciting times ahead...
 
 ## Concluding remarks
 
 Being able to run everything on GPUs is definitely a nice milestone, but I consider the real advantage of this work to be a future-proofing. The current GPU prices may make it hard to justify when you can easily pay more than a 100,000 USD for a top of the line GPU, versus a tenth of that for e.g. a Threadripper CPU. Still, running models on hardware that is both much more parallel and more restricted in terms of instruction sets seems to be the future. With KernelAbstractions as the foundation, we are ready to test whatever comes next.
 
-[^1]: There was many, now there
+[^1]: There were a fair number of packages back when I started -- now I have lost count. Fortunately, there is [DifferentionInterface.jl](https://github.com/JuliaDiff/DifferentiationInterface.jl) to handle the interfacing now...
 
 [^2]: [The first release of KernelAbstractions.jl was March 9th in 2020](https://github.com/JuliaGPU/KernelAbstractions.jl/releases/tag/v0.1.0). This is, for other reasons, the start of a period where a lot of people spent time indoors in front of computers.
 
