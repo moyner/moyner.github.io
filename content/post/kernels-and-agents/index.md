@@ -13,7 +13,7 @@ math: true
 
 ## Introduction
 
-I have just hit the merge button on the 0.4.0 release of JutulDarcy. The biggest change since the 0.3 series is full support for executing models on GPUs. We already had GPU support for linear solves on CUDA through NVIDIAs CuSPARSE and AMGX libraries, but the new release moves all compute-intensive parts to the GPUs in a single unified implementation that can execute on AMD GPUs, CUDA GPUs and CPUs, all written in Julia.
+I have just hit the merge button on the 0.4.1 release of JutulDarcy. The biggest change since the 0.3 series is full support for executing models on GPUs. We already had GPU support for linear solves on CUDA through NVIDIAs CuSPARSE and AMGX libraries, but the new release moves all compute-intensive parts to the GPUs in a single unified implementation that can execute on AMD GPUs, CUDA GPUs, OpenCL and different flavors of CPUs, all written in Julia.
 
 This post is written for those who are interested in at least one of the following:
 
@@ -23,6 +23,14 @@ This post is written for those who are interested in at least one of the followi
 - AI assistance
 
 This post is intended to be read by readers who may not be familiar with all of the above, so please bear with me if you are already a GPU-reservoir simulation expert who writes Julia kernels in your sleep (if so, drop me a line, we probably have some overlapping interests!).
+
+### I don't want to read, I want numbers
+
+- SPE10 (193 Newtons) in 12 seconds on a GTX 4080. On a Blackwell card this drops to under 8 seconds, with a single evaluation of properties and assembly taking less than 2 ms for the entire model.
+- Solving a 2 million cell thermal SPE11b case uses xx ms per complete iteration
+- The 8 component [Underground Hydrogen Benchmark study](https://www.ite.tu-clausthal.de/en/research/subsurface-energy-and-gas-storage/uhs-benchmark-study) (316 steps, 600 Newtons) runs in 50 seconds with the flash running on GPU.
+
+Reported numbers are for a double precision solve with linear algebra in single precision and FGMRES as the outer solver.
 
 ### JutulDarcy - Reservoir simulation in Julia
 
@@ -42,8 +50,6 @@ This blog post is not about the great performance offered by GPUs, which is well
 1. KernelAbstractions.jl and Adapt.jl for vendor-neutral parallelization
 1. Julia package extensions for load-on-demand functionality
 1. A bit of coding agents to fill in some gaps in the Julia linear solver ecosystem for our particular use case
-
-### But I just want to know how fast the code is?
 
 ## GPU reservoir simulation
 
@@ -427,11 +433,23 @@ This has been an on-and-off project for me. The first attempt can be found in th
 
 The nice thing about preconditioners is that it is very easy to verify their performance by checking if the application of the preconditioner $P$ gives a new update $x = P^{-1}b$ that reduces the linear residual $\| Ax - b \|_2$ at a reasonable speed for sample systems $A$. As the interface to the simulator is quite limited and easy to test, I am comfortable letting an agent work on this part without going over every line of code. In the future, it is likely that we can switch to builds of hypre for different devices. Jutul also has the option to use vendor libraries where preconditioners exist, but having a Julia native preconditioner means that we can automatically generalize support of JutulDarcy to any other backend that may appear in the future [^3]
 
+## Putting it all together
+
+The results are a much faster solver for both forward and backward solves. This applies not only to GPU, but also to CPU, where we can now finally launch very fast threaded simulations in an interactive manner. The ergonomics of running with threads versus MPI for interactive work cannot be understated, as MPI requires manually launching a new set of processes that then produce output on disk.
+
+The benchmark numbers indicate that a unified implementation based on automatic differentiation does not sacrifice anything in terms of fast performance on different devices. In a sense, we can have our cake and eat it too!
+
+I finally note that the SPE10 benchmark is a classical benchmark that is often (mis-)used. The simulation scenario is very simple and most of the complexity comes from the high heterogeneity in the model. As most robust simulators can take very large time-steps in this setting, total simulation times for the case comes down to how aggressive time-stepping you make use of. Looking at the per-iteration breakdown is more illustrative as it removes the effect of time-step selection and nonlinear tolerances.
+
 ## Working with agents
 
 I have found a good rhythm with agents where I use a mixture of VSCode with the agent to do pair-programming and the dedicated application for more open-ended tasks where I want the agent to investigate autonomously and then have a look at the outcomes myself at a later stage. The changes to the main code is an example of the former where I want to inspect every line, while the preconditioners fall in the latter category.
 
 Frontier models like Sol are very good at doing software engineering tasks, but my experience is that their efficiency more or less mirrors the code they are working against. If a task was not easy to do in the first place, they have a tendency to engineer hacks that a human would likely not bother writing. I suppose this comes from the model's reinforcement learning that emphasizes a working solution highly. Another capability that likely comes from the same training is a greatly improved efficiency for agents to run smaller subsets of code to figure out issues and performance. The models now quickly build minimal tests, extract pieces of code into local fixtures and make reports on performance. This makes the models much more efficient at practical scientific software engineering than at the start of 2026, even if the reasoning quality has not increased by the same magnitude. After an agent has worked for several hours, their working directory will be littered with code tests, log files and other artifacts. I suspect that even if the models stay at the same level in terms of reasoning quality, there is a lot more to be gained in how they are applied. Exciting times ahead...
+
+## Concluding remarks
+
+Being able to run everything on GPUs is definitely a nice milestone, but I consider the real advantage of this work to be a future-proofing. The current GPU prices may make it hard to justify when you can easily pay more than a 100,000 USD for a top of the line GPU, versus a tenth of that for e.g. a Threadripper CPU. Still, running models on hardware that is both much more parallel and more restricted in terms of instruction sets seems to be the future. With KernelAbstractions as the foundation, we are ready to test whatever comes next.
 
 [^1]: There was many, now there
 
