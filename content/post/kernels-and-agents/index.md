@@ -13,7 +13,6 @@ math: true
 
 ## Introduction
 
-
 I have just hit the merge button on the 0.4.1 release of [JutulDarcy](https://github.com/sintefmath/JutulDarcy.jl). There is a lot of nice improvements in the [0.4.0](https://github.com/sintefmath/JutulDarcy.jl/releases/tag/v0.4.0) and [0.4.1](https://github.com/sintefmath/JutulDarcy.jl/releases/tag/v0.4.1) releases, but the biggest change since the 0.3 series is full support for executing models on GPUs. We already had GPU support for linear solves on CUDA through NVIDIAs CuSPARSE and AMGX libraries, but the new release moves all compute-intensive parts to the GPUs in a single unified implementation that can execute on AMD GPUs, CUDA GPUs, OpenCL and different flavors of CPUs, all written in Julia.
 
 {{< video src="8c.mp4" >}}
@@ -349,12 +348,12 @@ The real strength of Adapt is that it is independent of the storage types themse
 GPUs are not so good at execute heavily branching logic, allocating memory during execution or manage complex data types that have variable size in memory. Even if we did not exploit it until now, the design of the Jutul was written with these restrictions of GPUs in mind. The main design considerations for Jutul that are relevant for GPUs are:
 
 - Everything uses automatic differentiation, so there is no manual derivatives that need to be specialized by hand for GPUs
-- The state is a struct of arrays rather than a array of structs. This means that Jutul internally stores e.g. all pressures or densities sequentially in memory. For variables like density, the density of the two phases in our example will be right next to each other as a column of a matrix.
+- The state is a struct of arrays rather than a array of structs. This means that Jutul internally stores e.g. all pressures or densities sequentially in memory. For variables like density, the density of the two phases in our example will be right next to each other as two entries in the same column of a matrix with one column per grid cell (Julia follows Fortran and MATLAB and stores matrix values consecutively in each column).
 - The dependence between these arrays (primary variables, secondary variables / properties and parameters) is an execution graph that is dynamic, allowing any variable to depend on any other variable, and the simulator can compute both the dependence at the start of simulation.
 - Evaluating properties and equations are mutating functions that update result arrays in place, similar to the relative permeability example above.
 - Equations use statically sized automatic differentiation with a fixed sparsity pattern detected at simulation setup. All updates to the linear system happens in-place.
 - The simulator has a rigorous approach where all changing values are stored in a state. This means that we can transfer the entire state of the simulator to and from GPU just by iterating over a list of named arrays. The structure of the simulator after initialization is immutable, making it impossible to have two references to the same state be out of sync.
-- Types parametric and can be specialized for GPU array types without changes.
+- Types are parametric and can be specialized for GPU array types without changes.
 
 ![Example graph of reservoir variables for SPE11C. Arrows indicate direction of dependency. Each of these entries represent an array that must be resdient on the GPU.](graph_spe11c.png)
 
